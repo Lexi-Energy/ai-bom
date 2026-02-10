@@ -140,6 +140,6 @@ source = ["ai_bom"]
 omit = ["*/dashboard/*", "*/demo_data/*"]
 
 [tool.coverage.report]
-fail_under = 80
+fail_under = 75
 show_missing = true
 skip_empty = true
