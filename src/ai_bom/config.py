@@ -5,7 +5,8 @@ This module contains all detection knowledge for identifying AI usage across var
 dimensions: packages, endpoints, models, API keys, containers, and risk factors.
 """
 
-from typing import Dict, FrozenSet, List, Set, Tuple
+import re
+from re import Pattern
 
 # =============================================================================
 # KNOWN AI PACKAGES
@@ -13,7 +14,7 @@ from typing import Dict, FrozenSet, List, Set, Tuple
 # Maps import/package names to (provider, usage_type) tuples
 # Usage types: completion, orchestration, agent, embedding, tool_use
 
-KNOWN_AI_PACKAGES: Dict[str, Tuple[str, str]] = {
+KNOWN_AI_PACKAGES: dict[str, tuple[str, str]] = {
     # OpenAI
     "openai": ("OpenAI", "completion"),
     "tiktoken": ("OpenAI", "tool_use"),
@@ -122,36 +123,36 @@ KNOWN_AI_PACKAGES: Dict[str, Tuple[str, str]] = {
 # =============================================================================
 # KNOWN AI ENDPOINTS
 # =============================================================================
-# List of (url_regex_pattern, provider, usage_type) tuples
+# List of (compiled_regex_pattern, provider, usage_type) tuples
 # Used to detect AI service calls in network traffic, config files, etc.
 
-KNOWN_AI_ENDPOINTS: List[Tuple[str, str, str]] = [
+KNOWN_AI_ENDPOINTS: list[tuple[Pattern[str], str, str]] = [
     # OpenAI
-    (r"api\.openai\.com", "OpenAI", "completion"),
-    (r"openai\.azure\.com", "Azure OpenAI", "completion"),
+    (re.compile(r"api\.openai\.com"), "OpenAI", "completion"),
+    (re.compile(r"openai\.azure\.com"), "Azure OpenAI", "completion"),
     # Anthropic
-    (r"api\.anthropic\.com", "Anthropic", "completion"),
+    (re.compile(r"api\.anthropic\.com"), "Anthropic", "completion"),
     # Google
-    (r"generativelanguage\.googleapis\.com", "Google", "completion"),
-    (r"aiplatform\.googleapis\.com", "Google Vertex AI", "completion"),
+    (re.compile(r"generativelanguage\.googleapis\.com"), "Google", "completion"),
+    (re.compile(r"aiplatform\.googleapis\.com"), "Google Vertex AI", "completion"),
     # Cohere
-    (r"api\.cohere\.ai", "Cohere", "completion"),
+    (re.compile(r"api\.cohere\.ai"), "Cohere", "completion"),
     # Mistral
-    (r"api\.mistral\.ai", "Mistral", "completion"),
+    (re.compile(r"api\.mistral\.ai"), "Mistral", "completion"),
     # Replicate
-    (r"api\.replicate\.com", "Replicate", "completion"),
+    (re.compile(r"api\.replicate\.com"), "Replicate", "completion"),
     # Together AI
-    (r"api\.together\.xyz", "Together", "completion"),
+    (re.compile(r"api\.together\.xyz"), "Together", "completion"),
     # HuggingFace
-    (r"api-inference\.huggingface\.co", "HuggingFace", "completion"),
-    (r"huggingface\.co/api", "HuggingFace", "completion"),
+    (re.compile(r"api-inference\.huggingface\.co"), "HuggingFace", "completion"),
+    (re.compile(r"huggingface\.co/api"), "HuggingFace", "completion"),
     # AWS Bedrock
-    (r"bedrock-runtime\..*\.amazonaws\.com", "AWS Bedrock", "completion"),
+    (re.compile(r"bedrock-runtime\..*\.amazonaws\.com"), "AWS Bedrock", "completion"),
     # Ollama (local)
-    (r"localhost:11434", "Ollama", "completion"),
-    (r"127\.0\.0\.1:11434", "Ollama", "completion"),
+    (re.compile(r"localhost:11434"), "Ollama", "completion"),
+    (re.compile(r"127\.0\.0\.1:11434"), "Ollama", "completion"),
     # Agent-to-Agent (A2A)
-    (r"a2a\.googleapis\.com", "Google A2A", "agent"),
+    (re.compile(r"a2a\.googleapis\.com"), "Google A2A", "agent"),
 ]
 
 # =============================================================================
@@ -160,56 +161,56 @@ KNOWN_AI_ENDPOINTS: List[Tuple[str, str, str]] = [
 # List of (regex_pattern, provider) tuples for model name detection
 # Used to identify model references in code, configs, and prompts
 
-KNOWN_MODEL_PATTERNS: List[Tuple[str, str]] = [
+KNOWN_MODEL_PATTERNS: list[tuple[Pattern[str], str]] = [
     # OpenAI GPT models
-    (r"gpt-4[o]?(-\w+)*", "OpenAI"),
-    (r"gpt-3\.5(-\w+)*", "OpenAI"),
-    (r"text-davinci-\d+", "OpenAI"),
-    (r"text-curie-\d+", "OpenAI"),
-    (r"text-babbage-\d+", "OpenAI"),
-    (r"text-ada-\d+", "OpenAI"),
-    (r"code-davinci-\d+", "OpenAI"),
-    (r"code-cushman-\d+", "OpenAI"),
+    (re.compile(r"gpt-4[o]?(-\w+)*"), "OpenAI"),
+    (re.compile(r"gpt-3\.5(-\w+)*"), "OpenAI"),
+    (re.compile(r"text-davinci-\d+"), "OpenAI"),
+    (re.compile(r"text-curie-\d+"), "OpenAI"),
+    (re.compile(r"text-babbage-\d+"), "OpenAI"),
+    (re.compile(r"text-ada-\d+"), "OpenAI"),
+    (re.compile(r"code-davinci-\d+"), "OpenAI"),
+    (re.compile(r"code-cushman-\d+"), "OpenAI"),
     # OpenAI Embeddings
-    (r"text-embedding-\w+-\d+", "OpenAI"),
+    (re.compile(r"text-embedding-\w+-\d+"), "OpenAI"),
     # OpenAI Audio/Vision
-    (r"dall-e-\d+", "OpenAI"),
-    (r"whisper-\d+", "OpenAI"),
-    (r"tts-\d+(-\w+)*", "OpenAI"),
+    (re.compile(r"dall-e-\d+"), "OpenAI"),
+    (re.compile(r"whisper-\d+"), "OpenAI"),
+    (re.compile(r"tts-\d+(-\w+)*"), "OpenAI"),
     # Anthropic Claude
-    (r"claude-3-\w+(-\w+)*", "Anthropic"),
-    (r"claude-2(\.\d+)?", "Anthropic"),
-    (r"claude-instant-\d+(\.\d+)?", "Anthropic"),
+    (re.compile(r"claude-3-\w+(-\w+)*"), "Anthropic"),
+    (re.compile(r"claude-2(\.\d+)?"), "Anthropic"),
+    (re.compile(r"claude-instant-\d+(\.\d+)?"), "Anthropic"),
     # Google Models
-    (r"gemini-\w+(-\w+)*", "Google"),
-    (r"palm-\d+", "Google"),
-    (r"bison-\w+", "Google"),
+    (re.compile(r"gemini-\w+(-\w+)*"), "Google"),
+    (re.compile(r"palm-\d+"), "Google"),
+    (re.compile(r"bison-\w+"), "Google"),
     # Cohere
-    (r"command-\w+(-\w+)*", "Cohere"),
-    (r"embed-\w+(-\w+)*", "Cohere"),
+    (re.compile(r"command-\w+(-\w+)*"), "Cohere"),
+    (re.compile(r"embed-\w+(-\w+)*"), "Cohere"),
     # Mistral
-    (r"mistral-\w+(-\w+)*", "Mistral"),
-    (r"mixtral-\w+(-\w+)*", "Mistral"),
+    (re.compile(r"mistral-\w+(-\w+)*"), "Mistral"),
+    (re.compile(r"mixtral-\w+(-\w+)*"), "Mistral"),
     # Meta LLaMA
-    (r"llama-\d+(-\w+)*", "Meta"),
-    (r"codellama-\w+(-\w+)*", "Meta"),
+    (re.compile(r"llama-\d+(-\w+)*"), "Meta"),
+    (re.compile(r"codellama-\w+(-\w+)*"), "Meta"),
     # Microsoft Phi
-    (r"phi-\d+(-\w+)*", "Microsoft"),
+    (re.compile(r"phi-\d+(-\w+)*"), "Microsoft"),
     # OpenAI latest
-    (r"gpt-4\.5(-\w+)*", "OpenAI"),
-    (r"o[13](-\w+)*", "OpenAI"),
+    (re.compile(r"gpt-4\.5(-\w+)*"), "OpenAI"),
+    (re.compile(r"o[13](-\w+)*"), "OpenAI"),
     # Anthropic Claude 4.x
-    (r"claude-4(-\w+)*", "Anthropic"),
-    (r"claude-4\.5(-\w+)*", "Anthropic"),
-    (r"claude-sonnet-4(-\w+)*", "Anthropic"),
-    (r"claude-opus-4(-\w+)*", "Anthropic"),
-    (r"claude-haiku-4(-\w+)*", "Anthropic"),
+    (re.compile(r"claude-4(-\w+)*"), "Anthropic"),
+    (re.compile(r"claude-4\.5(-\w+)*"), "Anthropic"),
+    (re.compile(r"claude-sonnet-4(-\w+)*"), "Anthropic"),
+    (re.compile(r"claude-opus-4(-\w+)*"), "Anthropic"),
+    (re.compile(r"claude-haiku-4(-\w+)*"), "Anthropic"),
     # Google Gemini 2.x
-    (r"gemini-2\.\d+(-\w+)*", "Google"),
+    (re.compile(r"gemini-2\.\d+(-\w+)*"), "Google"),
     # Meta Llama 4
-    (r"llama-4(-\w+)*", "Meta"),
+    (re.compile(r"llama-4(-\w+)*"), "Meta"),
     # DeepSeek
-    (r"deepseek-\w+(-\w+)*", "DeepSeek"),
+    (re.compile(r"deepseek-\w+(-\w+)*"), "DeepSeek"),
 ]
 
 # =============================================================================
@@ -218,35 +219,47 @@ KNOWN_MODEL_PATTERNS: List[Tuple[str, str]] = [
 # List of (regex_pattern, provider) tuples for API key detection
 # Used to identify hardcoded credentials and security risks
 
-API_KEY_PATTERNS: List[Tuple[str, str]] = [
+API_KEY_PATTERNS: list[tuple[Pattern[str], str]] = [
     # OpenAI (sk-proj- keys allow hyphens, must check before generic sk- pattern)
-    (r"sk-proj-[a-zA-Z0-9_-]{20,}", "OpenAI"),
+    (re.compile(r"sk-proj-[a-zA-Z0-9_-]{20,}"), "OpenAI"),
     # Note: DeepSeek also uses sk- prefix, causing overlap with OpenAI pattern
     # The sk-[a-zA-Z0-9]{20,} pattern below will match both OpenAI and DeepSeek keys
     # Additional context heuristics may be needed to distinguish between them
-    (r"sk-[a-zA-Z0-9]{20,}", "OpenAI/DeepSeek"),
+    (re.compile(r"sk-[a-zA-Z0-9]{20,}"), "OpenAI/DeepSeek"),
     # Anthropic
-    (r"sk-ant-[a-zA-Z0-9-]{20,}", "Anthropic"),
+    (re.compile(r"sk-ant-[a-zA-Z0-9-]{20,}"), "Anthropic"),
     # HuggingFace
-    (r"hf_[a-zA-Z0-9]{20,}", "HuggingFace"),
+    (re.compile(r"hf_[a-zA-Z0-9]{20,}"), "HuggingFace"),
     # Cohere
-    (r"key-[a-zA-Z0-9]{20,}", "Cohere"),
+    (re.compile(r"key-[a-zA-Z0-9]{20,}"), "Cohere"),
     # Groq
-    (r"gsk_[a-zA-Z0-9]{20,}", "Groq"),
+    (re.compile(r"gsk_[a-zA-Z0-9]{20,}"), "Groq"),
     # Replicate
-    (r"r8_[a-zA-Z0-9]{20,}", "Replicate"),
+    (re.compile(r"r8_[a-zA-Z0-9]{20,}"), "Replicate"),
     # xAI
-    (r"xai-[a-zA-Z0-9]{20,}", "xAI"),
+    (re.compile(r"xai-[a-zA-Z0-9]{20,}"), "xAI"),
     # Google
-    (r"AIza[a-zA-Z0-9_-]{20,}", "Google"),
+    (re.compile(r"AIza[a-zA-Z0-9_-]{20,}"), "Google"),
     # Fireworks
-    (r"fw_[a-zA-Z0-9]{20,}", "Fireworks"),
+    (re.compile(r"fw_[a-zA-Z0-9]{20,}"), "Fireworks"),
     # Perplexity
-    (r"pplx-[a-zA-Z0-9]{20,}", "Perplexity"),
-    # Together AI (64-char hex string)
-    (r"[a-f0-9]{64}", "Together"),
-    # Mistral (32-char alphanumeric)
-    (r"[a-zA-Z0-9]{32}", "Mistral"),
+    (re.compile(r"pplx-[a-zA-Z0-9]{20,}"), "Perplexity"),
+    # Together AI (64-char hex) - require assignment context to avoid git SHAs
+    (
+        re.compile(
+            r"(?i)(?:api[_-]?key|token|secret|together[_-]?(?:api|key))"
+            r"[\s'\"\:=]+([a-f0-9]{64})\b"
+        ),
+        "Together",
+    ),
+    # Mistral (32-char alnum) - require assignment context to avoid MD5/UUIDs
+    (
+        re.compile(
+            r"(?i)(?:api[_-]?key|token|secret|mistral[_-]?(?:api|key))"
+            r"[\s'\"\:=]+([a-zA-Z0-9]{32})\b"
+        ),
+        "Mistral",
+    ),
 ]
 
 # =============================================================================
@@ -255,15 +268,45 @@ API_KEY_PATTERNS: List[Tuple[str, str]] = [
 # List of known AI container image prefixes
 # Used to detect AI services in Docker/Kubernetes deployments
 
-AI_DOCKER_IMAGES: List[str] = [
+AI_DOCKER_IMAGES: list[str] = [
+    # Inference Servers
     "ollama/ollama",
     "vllm/vllm-openai",
+    "localai/localai",
+    # ML Frameworks
+    "pytorch/pytorch",
+    "tensorflow/tensorflow",
+    # HuggingFace
     "ghcr.io/huggingface",
+    "huggingface/text-generation-inference",
+    "huggingface/transformers-pytorch-gpu",
+    "ghcr.io/huggingface/text-generation-inference",
+    # NVIDIA Images
     "nvcr.io/nvidia",
+    "nvcr.io/nvidia/tritonserver",
+    "nvcr.io/nvidia/pytorch",
+    "nvcr.io/nvidia/tensorflow",
+    "nvcr.io/nvidia/tensorrt",
+    # LLM Inference
     "ghcr.io/ggerganov/llama.cpp",
+    # Jupyter Notebooks (Data Science & ML)
+    "jupyter/datascience-notebook",
+    "jupyter/scipy-notebook",
+    "jupyter/tensorflow-notebook",
+    # Vector Databases
     "chromadb/chroma",
     "qdrant/qdrant",
     "semitechnologies/weaviate",
+    "weaviate/weaviate",
+    "milvus/milvus",
+    "pinecone/pinecone",
+    "redis/redis-stack",
+    "pgvector/pgvector",
+    # ML Ops & Orchestration
+    "mlflow/mlflow",
+    "ray/ray-ml",
+    "apache/airflow",
+    "daskdev/dask",
 ]
 
 # =============================================================================
@@ -272,7 +315,7 @@ AI_DOCKER_IMAGES: List[str] = [
 # Set of n8n node type strings indicating AI usage
 # Used to detect AI in n8n workflow automation
 
-N8N_AI_NODE_TYPES: Set[str] = {
+N8N_AI_NODE_TYPES: set[str] = {
     # Agent nodes
     "@n8n/n8n-nodes-langchain.agent",
     # LLM Chat nodes
@@ -334,7 +377,7 @@ N8N_AI_NODE_TYPES: Set[str] = {
 # =============================================================================
 # Directories to skip during scanning for performance and accuracy
 
-EXCLUDED_DIRS: FrozenSet[str] = frozenset(
+EXCLUDED_DIRS: frozenset[str] = frozenset(
     {
         "node_modules",
         ".git",
@@ -364,7 +407,7 @@ EXCLUDED_DIRS: FrozenSet[str] = frozenset(
 # Maps CrewAI decorator names to their semantic type
 # Used to detect CrewAI flow-based agent definitions
 
-CREWAI_FLOW_PATTERNS: Dict[str, str] = {
+CREWAI_FLOW_PATTERNS: dict[str, str] = {
     "@crew": "crew_definition",
     "@agent": "agent_definition",
     "@task": "task_definition",
@@ -377,7 +420,7 @@ CREWAI_FLOW_PATTERNS: Dict[str, str] = {
 # =============================================================================
 # Known filenames for MCP server configuration
 
-MCP_CONFIG_FILES: Set[str] = {
+MCP_CONFIG_FILES: set[str] = {
     "mcp.json",
     ".mcp.json",
     "mcp-config.json",
@@ -389,7 +432,7 @@ MCP_CONFIG_FILES: Set[str] = {
 # =============================================================================
 # Maps scanner type to file extensions that should be scanned
 
-SCANNABLE_EXTENSIONS: Dict[str, Set[str]] = {
+SCANNABLE_EXTENSIONS: dict[str, set[str]] = {
     "code": {
         ".py",
         ".js",
@@ -445,7 +488,7 @@ SCANNABLE_EXTENSIONS: Dict[str, Set[str]] = {
 # Maps risk factor flags to severity scores (0-100 scale)
 # Higher scores indicate more severe security/operational risks
 
-RISK_WEIGHTS: Dict[str, int] = {
+RISK_WEIGHTS: dict[str, int] = {
     # Critical risks (25-30 points)
     "hardcoded_api_key": 30,
     "hardcoded_credentials": 30,
@@ -472,7 +515,7 @@ RISK_WEIGHTS: Dict[str, int] = {
 # Set of model identifiers that are deprecated or should not be used
 # Used to flag technical debt and security risks
 
-DEPRECATED_MODELS: Set[str] = {
+DEPRECATED_MODELS: set[str] = {
     # OpenAI deprecated models
     "gpt-3.5-turbo",  # Use gpt-3.5-turbo-0125 or gpt-4o-mini instead
     "gpt-3.5-turbo-0301",

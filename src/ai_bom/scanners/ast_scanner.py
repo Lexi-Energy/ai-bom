@@ -107,9 +107,8 @@ class ASTScanner(BaseScanner):
             if isinstance(node, ast.Import):
                 for alias in node.names:
                     names.append((alias.name, node.lineno))
-            elif isinstance(node, ast.ImportFrom):
-                if node.module:
-                    names.append((node.module, node.lineno))
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                names.append((node.module, node.lineno))
 
             for module_name, lineno in names:
                 # Check the full module and each prefix
@@ -192,9 +191,10 @@ class ASTScanner(BaseScanner):
             chain = _attr_chain(node.func)
             if not chain:
                 continue
-            for pattern, provider, desc in _AI_API_CALLS:
-                if re.search(pattern, chain) and pattern not in seen:
-                    seen.add(pattern)
+            for pattern_str, provider, desc in _AI_API_CALLS:
+                pattern = re.compile(pattern_str)
+                if pattern.search(chain) and pattern_str not in seen:
+                    seen.add(pattern_str)
                     components.append(
                         AIComponent(
                             name=f"{provider} API call: {desc}",
@@ -225,7 +225,7 @@ class ASTScanner(BaseScanner):
                 continue
             value = node.value
             for pattern, provider in KNOWN_MODEL_PATTERNS:
-                if re.fullmatch(pattern, value) and value not in seen:
+                if pattern.fullmatch(value) and value not in seen:
                     seen.add(value)
                     components.append(
                         AIComponent(

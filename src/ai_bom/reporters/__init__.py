@@ -29,4 +29,4 @@ def get_reporter(format_name: str) -> BaseReporter:
     return cls()
 
 
-__all__ = ["BaseReporter", "get_reporter", "REPORTERS"]
+__all__ = ["REPORTERS", "BaseReporter", "get_reporter"]

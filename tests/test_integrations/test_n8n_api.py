@@ -113,46 +113,58 @@ class TestGetWorkflow:
 
 class TestErrorHandling:
     def test_auth_error_401(self, client: N8nAPIClient):
-        with patch.object(client.session, "request", return_value=_mock_response({}, 401)):
-            with pytest.raises(N8nAuthError, match="Authentication failed"):
-                client.list_workflows()
+        with (
+            patch.object(client.session, "request", return_value=_mock_response({}, 401)),
+            pytest.raises(N8nAuthError, match="Authentication failed"),
+        ):
+            client.list_workflows()
 
     def test_auth_error_403(self, client: N8nAPIClient):
-        with patch.object(client.session, "request", return_value=_mock_response({}, 403)):
-            with pytest.raises(N8nAuthError, match="Authentication failed"):
-                client.list_workflows()
+        with (
+            patch.object(client.session, "request", return_value=_mock_response({}, 403)),
+            pytest.raises(N8nAuthError, match="Authentication failed"),
+        ):
+            client.list_workflows()
 
     def test_server_error_500(self, client: N8nAPIClient):
-        with patch.object(client.session, "request", return_value=_mock_response({}, 500)):
-            with pytest.raises(N8nAPIError, match="HTTP 500"):
-                client.list_workflows()
+        with (
+            patch.object(client.session, "request", return_value=_mock_response({}, 500)),
+            pytest.raises(N8nAPIError, match="HTTP 500"),
+        ):
+            client.list_workflows()
 
     def test_connection_error(self, client: N8nAPIClient):
-        with patch.object(
-            client.session,
-            "request",
-            side_effect=requests.ConnectionError("refused"),
+        with (
+            patch.object(
+                client.session,
+                "request",
+                side_effect=requests.ConnectionError("refused"),
+            ),
+            pytest.raises(N8nConnectionError, match="Could not connect"),
         ):
-            with pytest.raises(N8nConnectionError, match="Could not connect"):
-                client.list_workflows()
+            client.list_workflows()
 
     def test_timeout_error(self, client: N8nAPIClient):
-        with patch.object(
-            client.session,
-            "request",
-            side_effect=requests.Timeout("timed out"),
+        with (
+            patch.object(
+                client.session,
+                "request",
+                side_effect=requests.Timeout("timed out"),
+            ),
+            pytest.raises(N8nConnectionError, match="timed out"),
         ):
-            with pytest.raises(N8nConnectionError, match="timed out"):
-                client.list_workflows()
+            client.list_workflows()
 
     def test_generic_request_error(self, client: N8nAPIClient):
-        with patch.object(
-            client.session,
-            "request",
-            side_effect=requests.RequestException("something broke"),
+        with (
+            patch.object(
+                client.session,
+                "request",
+                side_effect=requests.RequestException("something broke"),
+            ),
+            pytest.raises(N8nAPIError, match="Request failed"),
         ):
-            with pytest.raises(N8nAPIError, match="Request failed"):
-                client.list_workflows()
+            client.list_workflows()
 
 
 # ---------------------------------------------------------------------------

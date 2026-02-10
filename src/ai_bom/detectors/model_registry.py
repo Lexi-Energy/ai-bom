@@ -92,10 +92,9 @@ def lookup_model(model_name: str) -> dict[str, str | bool] | None:
     best_length = 0
 
     for registered_name, metadata in MODEL_REGISTRY.items():
-        if model_name.startswith(registered_name):
-            if len(registered_name) > best_length:
-                best_match = (registered_name, metadata)
-                best_length = len(registered_name)
+        if model_name.startswith(registered_name) and len(registered_name) > best_length:
+            best_match = (registered_name, metadata)
+            best_length = len(registered_name)
 
     if best_match:
         return best_match[1]

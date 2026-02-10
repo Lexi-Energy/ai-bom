@@ -117,4 +117,5 @@ class N8nAPIClient:
         Returns:
             Workflow data dict.
         """
-        return self._request("GET", f"/api/v1/workflows/{workflow_id}")
+        result: dict[str, Any] = self._request("GET", f"/api/v1/workflows/{workflow_id}")
+        return result

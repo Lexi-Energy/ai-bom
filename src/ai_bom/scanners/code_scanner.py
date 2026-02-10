@@ -52,14 +52,7 @@ class CodeScanner(BaseScanner):
 
         # Check if file extension is in scannable code extensions
         file_ext = path.suffix.lower()
-        if file_ext in SCANNABLE_EXTENSIONS["code"]:
-            return True
-
-        # Also support dependency files
-        if path.name in SCANNABLE_EXTENSIONS["deps"]:
-            return True
-
-        return False
+        return file_ext in SCANNABLE_EXTENSIONS["code"] or path.name in SCANNABLE_EXTENSIONS["deps"]
 
     def scan(self, path: Path) -> list[AIComponent]:
         """Scan path for AI components using two-phase analysis.
@@ -222,7 +215,7 @@ class CodeScanner(BaseScanner):
         file_seen_sdks: set[str] = set()
         for line_num, line in enumerate(lines, start=1):
             api_key_results = detect_api_key(line)
-            for masked_key, provider, pattern in api_key_results:
+            for _, provider, _ in api_key_results:
                 component = AIComponent(
                     name=f"{provider} API Key",
                     type=ComponentType.llm_provider,
@@ -414,7 +407,7 @@ class CodeScanner(BaseScanner):
             for line_num, line in enumerate(lines, start=1):
                 # Check for API keys
                 api_key_results = detect_api_key(line)
-                for masked_key, provider, pattern in api_key_results:
+                for _, provider, _ in api_key_results:
                     component = AIComponent(
                         name=f"{provider} API Key",
                         type=ComponentType.llm_provider,
@@ -561,16 +554,9 @@ class CodeScanner(BaseScanner):
             True if model appears to have version pinning
         """
         # If model name contains a date pattern (e.g., 20240229, 0314) it's pinned
-        if re.search(r"\d{4,8}", model_name):
-            return True
-
         # If model name ends with a specific version number, it's pinned
         # e.g., gpt-3.5-turbo-0125
-        if re.search(r"-\d{4}$", model_name):
-            return True
-
-        # Otherwise, consider it unpinned
-        return False
+        return bool(re.search(r"\d{4,8}", model_name) or re.search(r"-\d{4}$", model_name))
 
     def _map_usage_type(self, usage_type_str: str) -> UsageType:
         """Map usage type string to UsageType enum.

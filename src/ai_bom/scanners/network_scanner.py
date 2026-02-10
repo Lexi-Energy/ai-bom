@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any, Set, Tuple
+from typing import Any
 
 from ai_bom.config import MCP_CONFIG_FILES
 from ai_bom.detectors.endpoint_db import detect_api_key, match_endpoint
@@ -106,14 +106,15 @@ class NetworkScanner(BaseScanner):
         filename = path.name.lower()
 
         # Check for .env files
-        if filename.startswith(".env"):
-            return True
-
         # Check for config file extensions
-        if path.suffix.lower() in {".yaml", ".yml", ".json", ".toml", ".ini", ".cfg"}:
-            return True
-
-        return False
+        return filename.startswith(".env") or path.suffix.lower() in {
+            ".yaml",
+            ".yml",
+            ".json",
+            ".toml",
+            ".ini",
+            ".cfg",
+        }
 
     def scan(self, path: Path) -> list[AIComponent]:
         """Scan path for AI endpoints and API keys in config files.
@@ -127,7 +128,7 @@ class NetworkScanner(BaseScanner):
         components: list[AIComponent] = []
 
         # Track seen (provider, file_path) pairs to avoid duplicates
-        seen_endpoints: Set[Tuple[str, str]] = set()
+        seen_endpoints: set[tuple[str, str]] = set()
 
         # Collect files to scan
         files_to_scan: list[Path] = []
@@ -140,10 +141,9 @@ class NetworkScanner(BaseScanner):
                 filename = file_path.name.lower()
 
                 # Match .env files
-                if self._is_env_file(filename):
-                    files_to_scan.append(file_path)
-                # Match config files (but skip node-related configs)
-                elif self._is_config_file(file_path) and filename not in SKIP_CONFIG_FILES:
+                if self._is_env_file(filename) or (
+                    self._is_config_file(file_path) and filename not in SKIP_CONFIG_FILES
+                ):
                     files_to_scan.append(file_path)
 
         # Collect MCP config files
@@ -194,14 +194,8 @@ class NetworkScanner(BaseScanner):
         ]
 
         # Exact matches
-        if filename in env_patterns:
-            return True
-
         # Pattern like .env.* but not .envrc
-        if filename.startswith(".env.") and len(filename) > 5:
-            return True
-
-        return False
+        return filename in env_patterns or (filename.startswith(".env.") and len(filename) > 5)
 
     def _is_config_file(self, file_path: Path) -> bool:
         """Check if file is a config file we should scan.
@@ -215,7 +209,7 @@ class NetworkScanner(BaseScanner):
         return file_path.suffix.lower() in {".yaml", ".yml", ".json", ".toml", ".ini", ".cfg"}
 
     def _scan_file(
-        self, file_path: Path, seen_endpoints: Set[Tuple[str, str]]
+        self, file_path: Path, seen_endpoints: set[tuple[str, str]]
     ) -> list[AIComponent]:
         """Scan a single file for AI endpoints and API keys.
 
@@ -257,7 +251,7 @@ class NetworkScanner(BaseScanner):
         return components
 
     def _scan_env_line(
-        self, file_path: Path, line_num: int, line: str, seen_endpoints: Set[Tuple[str, str]]
+        self, file_path: Path, line_num: int, line: str, seen_endpoints: set[tuple[str, str]]
     ) -> list[AIComponent]:
         """Scan an .env file line for AI environment variables.
 
@@ -319,7 +313,7 @@ class NetworkScanner(BaseScanner):
         return components
 
     def _scan_line_for_endpoints(
-        self, file_path: Path, line_num: int, line: str, seen_endpoints: Set[Tuple[str, str]]
+        self, file_path: Path, line_num: int, line: str, seen_endpoints: set[tuple[str, str]]
     ) -> list[AIComponent]:
         """Scan a line for AI endpoint URLs.
 
@@ -550,7 +544,7 @@ class NetworkScanner(BaseScanner):
         Returns:
             True if the URL is localhost / 127.0.0.1
         """
-        localhost_patterns = ["localhost", "127.0.0.1", "0.0.0.0", "::1"]
+        localhost_patterns = ["localhost", "127.0.0.1", "0.0.0.0", "::1"]  # noqa: S104
         url_lower = url.lower()
         return any(p in url_lower for p in localhost_patterns)
 

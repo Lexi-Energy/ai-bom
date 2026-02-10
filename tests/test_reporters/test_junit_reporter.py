@@ -22,7 +22,7 @@ class TestJUnitReporter:
         output = reporter.render(multi_component_result)
 
         # Parse to ensure valid XML
-        root = ET.fromstring(output)
+        root = ET.fromstring(output)  # noqa: S314
         assert root.tag == "testsuite"
 
     def test_testsuite_attributes(self, multi_component_result):
@@ -30,7 +30,7 @@ class TestJUnitReporter:
         reporter = JUnitReporter()
         output = reporter.render(multi_component_result)
 
-        root = ET.fromstring(output)
+        root = ET.fromstring(output)  # noqa: S314
 
         assert "name" in root.attrib
         assert "tests" in root.attrib
@@ -45,7 +45,7 @@ class TestJUnitReporter:
         reporter = JUnitReporter()
         output = reporter.render(multi_component_result)
 
-        root = ET.fromstring(output)
+        root = ET.fromstring(output)  # noqa: S314
         testcases = root.findall("testcase")
 
         assert len(testcases) == len(multi_component_result.components)
@@ -68,7 +68,7 @@ class TestJUnitReporter:
         reporter = JUnitReporter()
         output = reporter.render(result)
 
-        root = ET.fromstring(output)
+        root = ET.fromstring(output)  # noqa: S314
         testcase = root.find("testcase")
         failure = testcase.find("failure")
 
@@ -93,7 +93,7 @@ class TestJUnitReporter:
         reporter = JUnitReporter()
         output = reporter.render(result)
 
-        root = ET.fromstring(output)
+        root = ET.fromstring(output)  # noqa: S314
         failures_count = int(root.attrib["failures"])
 
         assert failures_count == 1
@@ -117,7 +117,7 @@ class TestJUnitReporter:
         reporter = JUnitReporter()
         output = reporter.render(result)
 
-        root = ET.fromstring(output)
+        root = ET.fromstring(output)  # noqa: S314
         testcase = root.find("testcase")
         failure = testcase.find("failure")
 
@@ -142,7 +142,7 @@ class TestJUnitReporter:
         reporter = JUnitReporter()
         output = reporter.render(result)
 
-        root = ET.fromstring(output)
+        root = ET.fromstring(output)  # noqa: S314
         failures_count = int(root.attrib["failures"])
 
         assert failures_count == 1
@@ -165,7 +165,7 @@ class TestJUnitReporter:
         reporter = JUnitReporter()
         output = reporter.render(result)
 
-        root = ET.fromstring(output)
+        root = ET.fromstring(output)  # noqa: S314
         failures_count = int(root.attrib["failures"])
 
         assert failures_count == 0
@@ -175,7 +175,7 @@ class TestJUnitReporter:
         reporter = JUnitReporter()
         output = reporter.render(multi_component_result)
 
-        root = ET.fromstring(output)
+        root = ET.fromstring(output)  # noqa: S314
         properties = root.find("properties")
 
         assert properties is not None
@@ -190,7 +190,7 @@ class TestJUnitReporter:
         reporter = JUnitReporter()
         output = reporter.render(multi_component_result)
 
-        root = ET.fromstring(output)
+        root = ET.fromstring(output)  # noqa: S314
         testcase = root.find("testcase")
         system_out = testcase.find("system-out")
 
@@ -207,5 +207,5 @@ class TestJUnitReporter:
         content = path.read_text()
 
         # Verify it's valid XML
-        root = ET.fromstring(content)
+        root = ET.fromstring(content)  # noqa: S314
         assert root.tag == "testsuite"

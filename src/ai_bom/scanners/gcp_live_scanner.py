@@ -23,7 +23,7 @@ except ImportError:
     class GoogleAPICallError(Exception):  # type: ignore[no-redef]
         pass
 
-    class PermissionDenied(Exception):  # type: ignore[no-redef]
+    class PermissionDenied(Exception):  # type: ignore[no-redef]  # noqa: N818
         pass
 
 

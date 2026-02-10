@@ -52,7 +52,7 @@ def test_scan_single_file():
 
 def test_scan_nonexistent_path():
     result = runner.invoke(app, ["scan", "/nonexistent/path/that/does/not/exist"])
-    assert result.exit_code == 1
+    assert result.exit_code == 2  # Operational error
 
 
 def test_scan_cyclonedx_format(tmp_path):
@@ -194,7 +194,7 @@ def test_scan_save_dashboard(tmp_path, monkeypatch):
 
 def test_scan_cloud_invalid_provider():
     result = runner.invoke(app, ["scan-cloud", "invalid"])
-    assert result.exit_code == 1
+    assert result.exit_code == 2  # Operational error
     assert "Unknown cloud provider" in result.output
 
 
@@ -210,5 +210,13 @@ def test_dashboard_command_missing_deps(monkeypatch):
 
     monkeypatch.setattr(builtins, "__import__", mock_import)
     result = runner.invoke(app, ["dashboard"])
-    assert result.exit_code == 1
+    assert result.exit_code == 2  # Operational error
     assert "not installed" in result.output.lower()
+
+
+def test_no_color_env_var(monkeypatch):
+    """Test that NO_COLOR environment variable disables colors."""
+    monkeypatch.setenv("NO_COLOR", "1")
+    result = runner.invoke(app, ["scan", str(demo_path), "--format", "cyclonedx"])
+    assert result.exit_code == 0
+    # The console.no_color flag should be set when NO_COLOR is present

@@ -49,7 +49,7 @@ def watch_and_scan(
     except ImportError:
         raise ImportError(
             "Watch mode requires the watchdog library. Install with: pip install ai-bom[watch]"
-        )
+        ) from None
 
     class _ChangeHandler(FileSystemEventHandler):
         def __init__(self) -> None:

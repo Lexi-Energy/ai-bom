@@ -297,11 +297,11 @@ def test_trusted_command_detection(tmp_path, scanner):
     assert len(components) == 2
 
     # Find untrusted component
-    untrusted = [c for c in components if c.metadata["server_name"] == "untrusted"][0]
+    untrusted = next(c for c in components if c.metadata["server_name"] == "untrusted")
     assert "mcp_unknown_server" in untrusted.flags
 
     # Find trusted component
-    trusted = [c for c in components if c.metadata["server_name"] == "trusted"][0]
+    trusted = next(c for c in components if c.metadata["server_name"] == "trusted")
     assert "mcp_unknown_server" not in trusted.flags
 
 

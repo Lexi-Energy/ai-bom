@@ -207,14 +207,25 @@ class ScanResult(BaseModel):
             if component.source:
                 properties.append({"name": "trusera:source", "value": component.source})
 
+            # Build purl (Package URL) for interoperability
+            purl = self._generate_purl(component)
+
+            # Determine version field (omit if unknown)
+            has_version = component.version and component.version != "unknown"
+            version = component.version if has_version else None
+
             cdx_component = {
                 "bom-ref": component.id,
                 "type": type_mapping.get(component.type, "application"),
                 "name": component.name,
-                "version": component.version or "unknown",
                 "description": f"{component.provider} {component.usage_type.value}".strip(),
                 "properties": properties,
+                "purl": purl,
             }
+
+            # Only add version if it's valid
+            if version:
+                cdx_component["version"] = version
 
             cdx_components.append(cdx_component)
 
@@ -241,3 +252,49 @@ class ScanResult(BaseModel):
             },
             "components": cdx_components,
         }
+
+    def _generate_purl(self, component: AIComponent) -> str:
+        """Generate Package URL (purl) for a component.
+
+        Args:
+            component: The AI component to generate a purl for
+
+        Returns:
+            Package URL string in the format pkg:type/name@version
+        """
+        # Normalize package name: lowercase and use hyphens (PyPI convention)
+        package_name = component.name.lower().replace("_", "-")
+
+        # Determine purl type based on component metadata or source
+        purl_type = "pypi"  # default
+
+        # Check if it's a container
+        if component.type == ComponentType.container:
+            purl_type = "docker"
+            # For Docker, extract image name from component name
+            # Format is usually "image:tag" or just "image"
+            if ":" in package_name:
+                package_name, tag = package_name.split(":", 1)
+                version = component.version or tag
+            else:
+                version = self._clean_version(component)
+        # Check for npm packages (starts with @ or has /)
+        elif package_name.startswith("@") or "/" in package_name:
+            purl_type = "npm"
+            version = self._clean_version(component)
+        # Default to PyPI
+        else:
+            version = self._clean_version(component)
+
+        # Build purl
+        if version:
+            return f"pkg:{purl_type}/{package_name}@{version}"
+        return f"pkg:{purl_type}/{package_name}"
+
+    @staticmethod
+    def _clean_version(component: AIComponent) -> str:
+        """Return version string or empty if unknown."""
+        v = component.version
+        if v and v != "unknown":
+            return v
+        return ""

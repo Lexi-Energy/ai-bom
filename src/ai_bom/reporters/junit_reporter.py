@@ -119,7 +119,7 @@ class JUnitReporter(BaseReporter):
         tree.write(output, encoding="utf-8", xml_declaration=True)
         return output.getvalue().decode("utf-8")
 
-    def _is_failure(self, component: "AIComponent") -> bool:
+    def _is_failure(self, component: AIComponent) -> bool:
         """Determine if a component should be marked as a test failure.
 
         Args:
@@ -129,9 +129,6 @@ class JUnitReporter(BaseReporter):
             True if component should be marked as failure
         """
         # High and critical severity are failures
-        if component.risk.severity.value in ("high", "critical"):
-            return True
-
         # Specific security flags are failures
         security_flags = {
             "hardcoded_api_key",
@@ -143,7 +140,6 @@ class JUnitReporter(BaseReporter):
             "no_auth",
         }
 
-        if any(flag in security_flags for flag in component.flags):
-            return True
-
-        return False
+        return component.risk.severity.value in ("high", "critical") or any(
+            flag in security_flags for flag in component.flags
+        )

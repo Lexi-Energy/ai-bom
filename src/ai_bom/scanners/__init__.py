@@ -21,6 +21,7 @@ Available scanners:
 
 from __future__ import annotations
 
+import contextlib
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -41,20 +42,14 @@ from ai_bom.scanners import (  # noqa: F401
 from ai_bom.scanners.base import BaseScanner, get_all_scanners
 
 # Live cloud scanners — optional dependencies, skip if SDK not installed
-try:
+with contextlib.suppress(ImportError):
     from ai_bom.scanners import aws_live_scanner  # noqa: F401
-except ImportError:
-    pass
 
-try:
+with contextlib.suppress(ImportError):
     from ai_bom.scanners import gcp_live_scanner  # noqa: F401
-except ImportError:
-    pass
 
-try:
+with contextlib.suppress(ImportError):
     from ai_bom.scanners import azure_live_scanner  # noqa: F401
-except ImportError:
-    pass
 
 logger = logging.getLogger(__name__)
 

@@ -48,12 +48,9 @@ class MCPConfigScanner(BaseScanner):
         """
         if path.is_file():
             # Check if file is a known MCP config file
-            if path.name in MCP_CONFIG_FILES:
-                return True
-            # Check additional patterns
-            if path.name == "mcp.json" and path.parent.name == ".cursor":
-                return True
-            return False
+            return path.name in MCP_CONFIG_FILES or (
+                path.name == "mcp.json" and path.parent.name == ".cursor"
+            )
 
         # For directories, check if any MCP config files exist
         if path.is_dir():
@@ -293,8 +290,4 @@ class MCPConfigScanner(BaseScanner):
         ]
 
         command_lower = command.lower()
-        for pattern in trusted_patterns:
-            if pattern in command_lower:
-                return True
-
-        return False
+        return any(pattern in command_lower for pattern in trusted_patterns)

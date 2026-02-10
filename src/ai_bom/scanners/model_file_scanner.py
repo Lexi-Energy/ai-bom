@@ -60,7 +60,7 @@ class ModelFileScanner(BaseScanner):
         if path.is_dir():
             try:
                 # Quick check for any model extensions
-                for ext in self.MODEL_EXTENSIONS.keys():
+                for ext in self.MODEL_EXTENSIONS:
                     if any(path.rglob(f"*{ext}")):
                         return True
                 # Check for large .bin files
@@ -92,7 +92,7 @@ class ModelFileScanner(BaseScanner):
         else:
             # Scan directory for model files
             # First, scan known extensions
-            for ext in self.MODEL_EXTENSIONS.keys():
+            for ext in self.MODEL_EXTENSIONS:
                 for model_file in path.rglob(f"*{ext}"):
                     if model_file.is_file():
                         component = self._create_component_from_file(model_file)

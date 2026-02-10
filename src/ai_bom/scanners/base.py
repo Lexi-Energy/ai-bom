@@ -35,7 +35,7 @@ def _load_ignore_spec(root: Path) -> Any:
     Returns:
         A ``pathspec.PathSpec`` object, or None.
     """
-    global _ignore_spec, _ignore_spec_loaded  # noqa: PLW0603
+    global _ignore_spec, _ignore_spec_loaded
 
     if _ignore_spec_loaded:
         return _ignore_spec
@@ -66,7 +66,7 @@ def _load_ignore_spec(root: Path) -> Any:
 
 def _reset_ignore_spec() -> None:
     """Reset the cached ignore spec (for testing only)."""
-    global _ignore_spec, _ignore_spec_loaded  # noqa: PLW0603
+    global _ignore_spec, _ignore_spec_loaded
     _ignore_spec = None
     _ignore_spec_loaded = False
 
@@ -372,9 +372,10 @@ class BaseScanner(ABC):
                         if file_ext in extensions:
                             matches = True
 
-                    if filenames is not None:
-                        if filename in filenames or filename.lower() in filenames:
-                            matches = True
+                    if filenames is not None and (
+                        filename in filenames or filename.lower() in filenames
+                    ):
+                        matches = True
 
                     # If no filters specified, match all files
                     if extensions is None and filenames is None:

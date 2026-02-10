@@ -165,6 +165,84 @@ class TestSARIFReporter:
         for result in results:
             assert result["level"] in valid_levels
 
+    def test_severity_mapping(self):
+        """Test that severity levels map correctly to SARIF levels."""
+        from ai_bom.models import (
+            AIComponent,
+            ComponentType,
+            RiskAssessment,
+            ScanResult,
+            Severity,
+            SourceLocation,
+            UsageType,
+        )
+
+        # Create components with each severity level
+        components = [
+            AIComponent(
+                name="critical-component",
+                type=ComponentType.llm_provider,
+                provider="Test",
+                location=SourceLocation(file_path="/test/critical.py"),
+                usage_type=UsageType.completion,
+                source="test",
+                risk=RiskAssessment(severity=Severity.critical, score=90, factors=[]),
+            ),
+            AIComponent(
+                name="high-component",
+                type=ComponentType.llm_provider,
+                provider="Test",
+                location=SourceLocation(file_path="/test/high.py"),
+                usage_type=UsageType.completion,
+                source="test",
+                risk=RiskAssessment(severity=Severity.high, score=70, factors=[]),
+            ),
+            AIComponent(
+                name="medium-component",
+                type=ComponentType.llm_provider,
+                provider="Test",
+                location=SourceLocation(file_path="/test/medium.py"),
+                usage_type=UsageType.completion,
+                source="test",
+                risk=RiskAssessment(severity=Severity.medium, score=50, factors=[]),
+            ),
+            AIComponent(
+                name="low-component",
+                type=ComponentType.llm_provider,
+                provider="Test",
+                location=SourceLocation(file_path="/test/low.py"),
+                usage_type=UsageType.completion,
+                source="test",
+                risk=RiskAssessment(severity=Severity.low, score=30, factors=[]),
+            ),
+        ]
+
+        result = ScanResult(target_path="/test")
+        result.components = components
+        result.build_summary()
+
+        reporter = SARIFReporter()
+        output = reporter.render(result)
+        data = json.loads(output)
+        results = data["runs"][0]["results"]
+
+        # Check that each severity maps to the correct SARIF level
+        level_map = {
+            "critical-component": "error",
+            "high-component": "warning",
+            "medium-component": "note",
+            "low-component": "note",
+        }
+
+        for sarif_result in results:
+            rule_id = sarif_result["ruleId"]
+            component_name = rule_id.replace("ai-bom/", "")
+            expected_level = level_map[component_name]
+            assert sarif_result["level"] == expected_level, (
+                f"Component {component_name} should map to {expected_level}, "
+                f"but got {sarif_result['level']}"
+            )
+
     def test_empty_components(self):
         from ai_bom.models import ScanResult
 

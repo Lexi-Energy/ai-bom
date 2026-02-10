@@ -238,10 +238,7 @@ class JupyterScanner(BaseScanner):
         for pattern, provider, comp_type_str in self._model_patterns:
             for match in pattern.finditer(source_code):
                 # Extract model name if captured
-                if match.groups():
-                    model_name = match.group(1)
-                else:
-                    model_name = ""
+                model_name = match.group(1) if match.groups() else ""
 
                 # Create unique key for deduplication
                 key = f"{provider}:{comp_type_str}:{model_name}"

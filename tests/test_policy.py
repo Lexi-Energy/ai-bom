@@ -110,7 +110,7 @@ class TestEvaluatePolicy:
             ]
         )
         policy = Policy(max_critical=0)
-        passed, violations = evaluate_policy(result, policy)
+        passed, _violations = evaluate_policy(result, policy)
         assert passed
 
     def test_max_critical_fail(self):
@@ -156,7 +156,7 @@ class TestEvaluatePolicy:
             ]
         )
         policy = Policy(max_risk_score=75)
-        passed, violations = evaluate_policy(result, policy)
+        passed, _violations = evaluate_policy(result, policy)
         assert passed
 
     def test_block_providers_fail(self):
@@ -177,7 +177,7 @@ class TestEvaluatePolicy:
             ]
         )
         policy = Policy(block_providers=["ollama"])
-        passed, violations = evaluate_policy(result, policy)
+        passed, _violations = evaluate_policy(result, policy)
         assert not passed
 
     def test_block_providers_pass(self):
@@ -187,7 +187,7 @@ class TestEvaluatePolicy:
             ]
         )
         policy = Policy(block_providers=["Ollama"])
-        passed, violations = evaluate_policy(result, policy)
+        passed, _violations = evaluate_policy(result, policy)
         assert passed
 
     def test_block_flags_fail(self):
@@ -208,7 +208,7 @@ class TestEvaluatePolicy:
             ]
         )
         policy = Policy(block_flags=["hardcoded_api_key"])
-        passed, violations = evaluate_policy(result, policy)
+        passed, _violations = evaluate_policy(result, policy)
         assert passed
 
     def test_multiple_violations(self):

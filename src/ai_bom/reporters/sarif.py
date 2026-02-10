@@ -12,8 +12,8 @@ from ai_bom.reporters.base import BaseReporter
 # Map severity to SARIF level
 _SEVERITY_TO_LEVEL = {
     Severity.critical: "error",
-    Severity.high: "error",
-    Severity.medium: "warning",
+    Severity.high: "warning",
+    Severity.medium: "note",
     Severity.low: "note",
 }
 

@@ -56,7 +56,10 @@ dev = [
     "ruff>=0.1.0,<1.0",
     "mypy>=1.0,<2.0",
     "types-PyYAML>=6.0,<7.0",
+    "types-requests>=2.28,<3.0",
+    "jsonschema>=4.0,<5.0",
     "pip-audit>=2.6.0,<3.0",
+    "jsonschema>=4.0,<5.0",
 ]
 docs = [
     "mkdocs>=1.5,<2.0",
@@ -122,25 +125,43 @@ target-version = "py310"
 line-length = 100
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "W"]
+select = ["E", "F", "I", "W", "S", "B", "C4", "UP", "SIM", "N", "RUF"]
+ignore = [
+    "S101",   # assert used in tests (pytest)
+    "S603",   # subprocess call - check for untrusted input (we validate)
+    "S607",   # start process with partial path
+    "UP007",  # Use X | Y for union types (breaks Typer runtime introspection)
+    "UP045",  # Use X | None (breaks Typer runtime introspection)
+    "RUF012", # mutable class default — valid for Pydantic models
+    "S112",   # try-except-continue — valid pattern in file-scanning loops
+    "S110",   # try-except-pass — reviewed, used in graceful fallbacks
+]
 
 [tool.ruff.lint.per-file-ignores]
 "src/ai_bom/dashboard/frontend.py" = ["E501"]
+"src/ai_bom/dashboard/*.py" = ["S104"]  # bind 0.0.0.0 — intended for server
+"tests/**/*.py" = ["S101", "S106", "S108", "N802", "N803"]
 
 [tool.mypy]
 python_version = "3.10"
-warn_return_any = false
+warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = false
+disallow_untyped_defs = true
 check_untyped_defs = true
 ignore_missing_imports = true
-exclude = ["tests/", "docs/", "demo_data/", "dashboard/", "integrations/"]
+namespace_packages = false
+exclude = ["tests/", "docs/", "demo_data/"]
 
 [tool.coverage.run]
 source = ["ai_bom"]
-omit = ["*/dashboard/*", "*/demo_data/*"]
+omit = [
+    "*/dashboard/*",
+    "*/demo_data/*",
+    "*/server.py",         # FastAPI server — requires uvicorn at runtime
+    "*/watcher.py",        # Watchdog file watcher — requires watchdog at runtime
+]
 
 [tool.coverage.report]
-fail_under = 75
+fail_under = 80
 show_missing = true
 skip_empty = true

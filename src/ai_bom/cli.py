@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
+import os
 import shutil
 import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import typer
 from rich import box
@@ -22,6 +24,9 @@ from ai_bom.reporters import get_reporter
 from ai_bom.scanners import get_all_scanners
 from ai_bom.scanners.ast_scanner import ASTScanner
 from ai_bom.utils.risk_scorer import score_component
+
+# Exit codes
+EXIT_ERROR = 2  # Operational errors (bad path, network failure, parse error, etc.)
 
 app = typer.Typer(
     name="ai-bom",
@@ -84,7 +89,7 @@ def _clone_repo(url: str) -> Path:
         console.print(
             "[red]GitPython is not installed. Install it with: pip install gitpython[/red]"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_ERROR) from None
 
     try:
         tmp = Path(tempfile.mkdtemp(prefix="ai-bom-"))
@@ -94,7 +99,7 @@ def _clone_repo(url: str) -> Path:
         return tmp
     except Exception as e:
         console.print(f"[red]Failed to clone repository: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_ERROR) from None
 
 
 def _resolve_target(
@@ -123,7 +128,7 @@ def _resolve_target(
         n8n_path = Path.home() / ".n8n"
         if not n8n_path.exists():
             console.print(f"[red]n8n directory not found at {n8n_path}[/red]")
-            raise typer.Exit(1)
+            raise typer.Exit(EXIT_ERROR)
         scan_path = n8n_path
     elif n8n_url:
         # Live n8n scanning via API — handled separately in scan()
@@ -134,7 +139,7 @@ def _resolve_target(
         scan_path = Path(target).resolve()
         if not scan_path.exists():
             console.print(f"[red]Target path does not exist: {scan_path}[/red]")
-            raise typer.Exit(1)
+            raise typer.Exit(EXIT_ERROR)
 
     return scan_path, is_temp
 
@@ -311,8 +316,8 @@ def scan(
         if cfg and verbose:
             console.print(f"[dim]Loaded config: {cfg}[/dim]")
 
-    # Disable colors if requested
-    if no_color:
+    # Disable colors if requested or if NO_COLOR environment variable is set
+    if no_color or os.environ.get("NO_COLOR") is not None:
         console.no_color = True
 
     # Print banner for table format (unless quiet)
@@ -330,7 +335,7 @@ def scan(
         raise
     except KeyboardInterrupt:
         console.print("\n[yellow]Scan cancelled by user.[/yellow]")
-        raise typer.Exit(0)
+        raise typer.Exit(0) from None
 
     try:
         # Initialize scan result
@@ -341,7 +346,7 @@ def scan(
             # --- Live n8n API scanning ---
             if not n8n_api_key:
                 console.print("[red]--n8n-api-key is required when using --n8n-url[/red]")
-                raise typer.Exit(1)
+                raise typer.Exit(EXIT_ERROR)
 
             from ai_bom.integrations.n8n_api import (
                 N8nAPIClient,
@@ -362,13 +367,13 @@ def scan(
                 components = n8n_scanner.scan_from_api(client)
             except N8nAuthError:
                 console.print("[red]Authentication failed. Check your n8n API key.[/red]")
-                raise typer.Exit(1)
+                raise typer.Exit(EXIT_ERROR) from None
             except N8nConnectionError as exc:
                 console.print(f"[red]Cannot connect to n8n: {exc}[/red]")
-                raise typer.Exit(1)
+                raise typer.Exit(EXIT_ERROR) from None
             except N8nAPIError as exc:
                 console.print(f"[red]n8n API error: {exc}[/red]")
-                raise typer.Exit(1)
+                raise typer.Exit(EXIT_ERROR) from None
 
             for comp in components:
                 comp.risk = score_component(comp)
@@ -509,7 +514,7 @@ def scan(
             if debug:
                 logger.exception("Error generating report")
             console.print(f"[red]Error generating report: {e}[/red]")
-            raise typer.Exit(1)
+            raise typer.Exit(EXIT_ERROR) from None
 
         # Save to dashboard database if requested
         if save_dashboard:
@@ -580,7 +585,7 @@ def scan(
 
     except KeyboardInterrupt:
         console.print("\n[yellow]Scan cancelled by user.[/yellow]")
-        raise typer.Exit(0)
+        raise typer.Exit(0) from None
 
     finally:
         # Cleanup temp directory if we cloned a repo
@@ -615,7 +620,7 @@ def scan_cloud(
         console.print(
             f"[red]Unknown cloud provider: {provider}. Choose from: {', '.join(provider_map)}[/red]"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_ERROR)
 
     if format == "table" and not quiet:
         _print_banner()
@@ -633,7 +638,7 @@ def scan_cloud(
             f"[red]{provider.upper()} live scanner is not available. "
             f"Install the SDK: pip install ai-bom[{provider}][/red]"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_ERROR)
 
     # Enable and run
     live_scanner.enabled = True  # type: ignore[attr-defined]
@@ -663,7 +668,7 @@ def scan_cloud(
             progress.update(task, completed=True)
     except Exception as exc:
         console.print(f"[red]Cloud scan error: {exc}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_ERROR) from None
     finally:
         live_scanner.enabled = False  # type: ignore[attr-defined]
 
@@ -693,7 +698,7 @@ def scan_cloud(
             print(output_str)
     except Exception as exc:
         console.print(f"[red]Error generating report: {exc}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_ERROR) from None
 
 
 @app.command()
@@ -707,7 +712,7 @@ def demo() -> None:
 
     if not demo_path.exists():
         console.print("[red]Demo project not found.[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_ERROR)
 
     console.print(f"[cyan]Running demo scan on {demo_path}...[/cyan]")
     console.print()
@@ -798,13 +803,13 @@ def diff(
 
     except FileNotFoundError as e:
         console.print(f"[red]Error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_ERROR) from None
     except ValueError as e:
         console.print(f"[red]Error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_ERROR) from None
     except Exception as e:
         console.print(f"[red]Unexpected error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_ERROR) from None
 
 
 @app.command()
@@ -820,7 +825,7 @@ def dashboard(
             "[red]Dashboard dependencies not installed. "
             "Install with: pip install ai-bom[dashboard][/red]"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_ERROR) from None
 
     from ai_bom.dashboard import create_app
 
@@ -835,7 +840,7 @@ def dashboard(
 
 @app.command()
 def serve(
-    host: str = typer.Option("0.0.0.0", help="Host to bind"),
+    host: str = typer.Option("0.0.0.0", help="Host to bind"),  # noqa: S104
     port: int = typer.Option(8080, help="Port to bind"),
 ) -> None:
     """Start the AI-BOM REST API server."""
@@ -845,7 +850,7 @@ def serve(
         console.print(
             "[red]Server dependencies not installed. Install with: pip install ai-bom[server][/red]"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_ERROR) from None
 
     from ai_bom.server import create_server_app
 
@@ -870,23 +875,23 @@ def watch(
         from watchdog.observers import Observer
     except ImportError:
         console.print("[red]watchdog is not installed. Install it with: pip install watchdog[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_ERROR) from None
 
     scan_path = Path(target).resolve()
     if not scan_path.exists():
         console.print(f"[red]Target path does not exist: {scan_path}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_ERROR)
 
     _print_banner()
     console.print(f"[cyan]Watching {scan_path} for changes... (Ctrl+C to stop)[/cyan]")
     console.print()
 
     class _Handler(FileSystemEventHandler):
-        def on_modified(self, event):  # noqa: ANN001
+        def on_modified(self, event: Any) -> None:
             if event.is_directory:
                 return
             console.print(f"[dim]Change detected: {event.src_path}[/dim]")
-            try:
+            with contextlib.suppress(SystemExit):
                 scan(
                     target=str(scan_path),
                     format=format,
@@ -907,8 +912,6 @@ def watch(
                     workers=0,
                     cache=False,
                 )
-            except SystemExit:
-                pass
 
     observer = Observer()
     observer.schedule(_Handler(), str(scan_path), recursive=True)

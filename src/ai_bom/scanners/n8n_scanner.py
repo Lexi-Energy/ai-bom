@@ -226,7 +226,7 @@ class N8nScanner(BaseScanner):
             connected_nodes: set[str] = set()
 
             if isinstance(connection_types, dict):
-                for conn_type, conn_list in connection_types.items():
+                for _, conn_list in connection_types.items():
                     if isinstance(conn_list, list):
                         for conn_group in conn_list:
                             if isinstance(conn_group, list):
@@ -371,12 +371,35 @@ class N8nScanner(BaseScanner):
 
         # Dangerous code patterns in n8n code nodes
         dangerous_code_patterns = [
+            # Process execution
             r"child_process",
             r"execSync\(",
             r"exec\(",
             r"spawn\(",
-            r"require\(['\"]fs['\"]\)",
+            r"process\.exit\(",
+            # Dynamic code execution
             r"eval\(",
+            r"Function\(",
+            r"new\s+Function\(",
+            # File system access
+            r"require\(['\"]fs['\"]\)",
+            r"fs\.writeFile",
+            r"fs\.unlink",
+            # Path disclosure
+            r"__dirname",
+            # Dynamic require (variable-based)
+            r"require\(\s*[a-zA-Z_$]",
+            # Outbound network connections
+            r"http\.request",
+            r"https\.request",
+            # Data exfiltration encoding
+            r"Buffer\.from",
+            # Implicit eval via setTimeout/setInterval
+            r"setTimeout\s*\(\s*['\"]",
+            r"setInterval\s*\(\s*['\"]",
+            # Browser context (if n8n code runs in browser)
+            r"document\.cookie",
+            r"window\.location",
         ]
 
         for node in nodes:
@@ -392,7 +415,7 @@ class N8nScanner(BaseScanner):
             if node_type == "n8n-nodes-base.httpRequest":
                 params_str = json.dumps(parameters)
                 for pattern, provider in API_KEY_PATTERNS:
-                    if re.search(pattern, params_str):
+                    if pattern.search(params_str):
                         # Add a component for the hardcoded key
                         location = SourceLocation(
                             file_path=str(file_path.resolve()),
@@ -672,23 +695,23 @@ class N8nScanner(BaseScanner):
             if key in parameters:
                 value = parameters[key]
                 # Check if it's a non-empty string that looks like a credential
-                if isinstance(value, str) and value and len(value) > 5:
-                    # Exclude common placeholders
-                    if value.lower() not in {
+                if (
+                    isinstance(value, str)
+                    and value
+                    and len(value) > 5
+                    and value.lower()
+                    not in {
                         "your_api_key",
                         "your-api-key",
                         "placeholder",
                         "example",
-                    }:
-                        return True
+                    }
+                ):
+                    return True
 
         # Check against known API key patterns
         params_str = json.dumps(parameters)
-        for pattern, _ in API_KEY_PATTERNS:
-            if re.search(pattern, params_str):
-                return True
-
-        return False
+        return any(pattern.search(params_str) for pattern, _ in API_KEY_PATTERNS)
 
     def _check_mcp_risks(self, parameters: dict[str, Any], component: AIComponent) -> None:
         """Check for MCP-specific security risks.
@@ -701,15 +724,17 @@ class N8nScanner(BaseScanner):
         url_keys = ["sseEndpoint", "sseUrl", "serverUrl", "url", "endpoint"]
         for key in url_keys:
             url_value = parameters.get(key, "")
-            if url_value and isinstance(url_value, str):
-                # Check if it's NOT localhost/127.0.0.1
-                if not (
+            if (
+                url_value
+                and isinstance(url_value, str)
+                and not (
                     "localhost" in url_value.lower()
                     or "127.0.0.1" in url_value
                     or "::1" in url_value
-                ):
-                    component.flags.append("mcp_unknown_server")
-                    break  # Only flag once
+                )
+            ):
+                component.flags.append("mcp_unknown_server")
+                break  # Only flag once
 
     def _apply_workflow_risks(
         self,
@@ -843,18 +868,17 @@ class N8nScanner(BaseScanner):
             # Check incoming connections
             for source_node, targets in connections.items():
                 if isinstance(targets, dict):
-                    for conn_type, conn_list in targets.items():
+                    for _, conn_list in targets.items():
                         if isinstance(conn_list, list):
                             for conn_group in conn_list:
                                 if isinstance(conn_group, list):
                                     for conn in conn_group:
-                                        if isinstance(conn, dict):
-                                            if conn.get("node") == node_name:
-                                                source = node_map.get(source_node)
-                                                if source and self._is_agent_node(
-                                                    source.get("type", "")
-                                                ):
-                                                    has_agent_input = True
+                                        if isinstance(conn, dict) and conn.get("node") == node_name:
+                                            source = node_map.get(source_node)
+                                            if source and self._is_agent_node(
+                                                source.get("type", "")
+                                            ):
+                                                has_agent_input = True
 
             # Check outgoing connections
             connected_names = self._get_all_connected_nodes(node_name, connections)
@@ -889,7 +913,7 @@ class N8nScanner(BaseScanner):
         if not isinstance(connection_types, dict):
             return connected
 
-        for conn_type, conn_list in connection_types.items():
+        for _, conn_list in connection_types.items():
             if not isinstance(conn_list, list):
                 continue
 
@@ -935,6 +959,8 @@ class N8nScanner(BaseScanner):
             if agent_count > 1 and workflow_info.agent_chains:
                 # Add flag to agents in multi-agent chains
                 for component in workflow_components.get(workflow_info.workflow_name, []):
-                    if component.type == ComponentType.agent_framework:
-                        if "agent_chain_no_validation" not in component.flags:
-                            component.flags.append("multi_agent_no_trust")
+                    if (
+                        component.type == ComponentType.agent_framework
+                        and "agent_chain_no_validation" not in component.flags
+                    ):
+                        component.flags.append("multi_agent_no_trust")

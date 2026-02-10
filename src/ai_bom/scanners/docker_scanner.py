@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Pattern
+from re import Pattern
 
 import yaml
 
@@ -68,11 +68,14 @@ class DockerScanner(BaseScanner):
         if path.is_file():
             filename = path.name.lower()
             # Match Dockerfile* or *compose*.yml/yaml
-            if filename.startswith("dockerfile") or filename.endswith(".dockerfile"):
-                return True
-            if "compose" in filename and (filename.endswith(".yml") or filename.endswith(".yaml")):
-                return True
-            return False
+            return (
+                filename.startswith("dockerfile")
+                or filename.endswith(".dockerfile")
+                or (
+                    "compose" in filename
+                    and (filename.endswith(".yml") or filename.endswith(".yaml"))
+                )
+            )
 
         # For directories, check if any Docker files exist
         if path.is_dir():
@@ -494,7 +497,7 @@ class DockerScanner(BaseScanner):
 
         # Handle environment as dict
         elif isinstance(environment, dict):
-            for key in environment.keys():
+            for key in environment:
                 key_upper = str(key).upper()
                 for pattern in self.AI_ENV_PATTERNS:
                     if pattern in key_upper:

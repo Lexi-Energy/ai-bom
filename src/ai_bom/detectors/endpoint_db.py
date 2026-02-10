@@ -36,7 +36,7 @@ def match_endpoint(url: str) -> tuple[str, str] | None:
         None
     """
     for pattern, provider, usage_type in KNOWN_AI_ENDPOINTS:
-        if re.search(pattern, url, re.IGNORECASE):
+        if pattern.search(url, re.IGNORECASE):
             return (provider, usage_type)
     return None
 
@@ -68,7 +68,7 @@ def detect_api_key(text: str) -> list[tuple[str, str, str]]:
     results: list[tuple[str, str, str]] = []
 
     for pattern, provider in API_KEY_PATTERNS:
-        for match in re.finditer(pattern, text):
+        for match in pattern.finditer(text):
             key = match.group(0)
 
             # Mask the key for security
@@ -78,6 +78,6 @@ def detect_api_key(text: str) -> list[tuple[str, str, str]]:
                 masked_key = key[:8] + "..." + key[-4:]
 
             # Include all keys - even placeholders indicate AI usage
-            results.append((masked_key, provider, pattern))
+            results.append((masked_key, provider, str(pattern.pattern)))
 
     return results

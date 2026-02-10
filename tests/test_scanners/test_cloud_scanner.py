@@ -44,7 +44,7 @@ class TestCloudScanner:
         azure_components = [c for c in components if "Azure" in c.provider]
         assert len(azure_components) >= 1
         assert any(c.provider == "Azure OpenAI" for c in azure_components)
-        azure_openai = [c for c in azure_components if c.provider == "Azure OpenAI"][0]
+        azure_openai = next(c for c in azure_components if c.provider == "Azure OpenAI")
         assert azure_openai.type == ComponentType.endpoint
 
     def test_detects_gcp_reasoning_engine(self, scanner, fixtures_dir):

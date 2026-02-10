@@ -69,7 +69,7 @@ def _scan_payload(scan_id: str = "test-scan-001", target: str = "/home/user/proj
 
 
 class TestDashboardRoot:
-    def test_serves_html(self, client: "TestClient") -> None:
+    def test_serves_html(self, client: TestClient) -> None:
         resp = client.get("/")
         assert resp.status_code == 200
         assert "text/html" in resp.headers["content-type"]
@@ -77,12 +77,12 @@ class TestDashboardRoot:
 
 
 class TestListScans:
-    def test_empty(self, client: "TestClient") -> None:
+    def test_empty(self, client: TestClient) -> None:
         resp = client.get("/api/scans")
         assert resp.status_code == 200
         assert resp.json() == []
 
-    def test_after_create(self, client: "TestClient") -> None:
+    def test_after_create(self, client: TestClient) -> None:
         client.post("/api/scans", json=_scan_payload())
         resp = client.get("/api/scans")
         data = resp.json()
@@ -92,18 +92,18 @@ class TestListScans:
 
 
 class TestCreateScan:
-    def test_success(self, client: "TestClient") -> None:
+    def test_success(self, client: TestClient) -> None:
         resp = client.post("/api/scans", json=_scan_payload())
         assert resp.status_code == 201
         body = resp.json()
         assert body["id"] == "test-scan-001"
         assert body["status"] == "saved"
 
-    def test_missing_required_fields(self, client: "TestClient") -> None:
+    def test_missing_required_fields(self, client: TestClient) -> None:
         resp = client.post("/api/scans", json={"id": "bad"})
         assert resp.status_code == 422
 
-    def test_auto_generates_id(self, client: "TestClient") -> None:
+    def test_auto_generates_id(self, client: TestClient) -> None:
         payload = _scan_payload()
         del payload["id"]
         resp = client.post("/api/scans", json=payload)
@@ -112,7 +112,7 @@ class TestCreateScan:
 
 
 class TestGetScan:
-    def test_found(self, client: "TestClient") -> None:
+    def test_found(self, client: TestClient) -> None:
         client.post("/api/scans", json=_scan_payload())
         resp = client.get("/api/scans/test-scan-001")
         assert resp.status_code == 200
@@ -120,13 +120,13 @@ class TestGetScan:
         assert data["id"] == "test-scan-001"
         assert len(data["components"]) == 2
 
-    def test_not_found(self, client: "TestClient") -> None:
+    def test_not_found(self, client: TestClient) -> None:
         resp = client.get("/api/scans/nonexistent")
         assert resp.status_code == 404
 
 
 class TestDeleteScan:
-    def test_delete_existing(self, client: "TestClient") -> None:
+    def test_delete_existing(self, client: TestClient) -> None:
         client.post("/api/scans", json=_scan_payload())
         resp = client.delete("/api/scans/test-scan-001")
         assert resp.status_code == 200
@@ -135,13 +135,13 @@ class TestDeleteScan:
         resp = client.get("/api/scans/test-scan-001")
         assert resp.status_code == 404
 
-    def test_delete_not_found(self, client: "TestClient") -> None:
+    def test_delete_not_found(self, client: TestClient) -> None:
         resp = client.delete("/api/scans/nope")
         assert resp.status_code == 404
 
 
 class TestCompareScans:
-    def test_compare_two_scans(self, client: "TestClient") -> None:
+    def test_compare_two_scans(self, client: TestClient) -> None:
         client.post("/api/scans", json=_scan_payload("scan-a", "/path/a"))
         # Second scan has different components
         payload_b = _scan_payload("scan-b", "/path/b")
@@ -170,7 +170,7 @@ class TestCompareScans:
         assert "gpt-4" in data["removed"]
         assert "openai" in data["common"]
 
-    def test_compare_missing_scan(self, client: "TestClient") -> None:
+    def test_compare_missing_scan(self, client: TestClient) -> None:
         client.post("/api/scans", json=_scan_payload("scan-x"))
         resp = client.get("/api/compare", params={"scan_id_1": "scan-x", "scan_id_2": "missing"})
         assert resp.status_code == 404

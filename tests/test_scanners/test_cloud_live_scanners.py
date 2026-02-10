@@ -526,5 +526,5 @@ class TestScanCloudCLI:
 
         runner = CliRunner()
         result = runner.invoke(app, ["scan-cloud", "aws", "--quiet", "-f", "json"])
-        # Might exit 1 if scanner not available -- ok
-        assert result.exit_code in (0, 1)
+        # Might exit 1 if scanner not available, or 2 if no region configured -- ok
+        assert result.exit_code in (0, 1, 2)

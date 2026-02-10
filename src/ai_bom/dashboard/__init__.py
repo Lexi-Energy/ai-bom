@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from fastapi import FastAPI
 
 
-def create_app() -> "FastAPI":  # noqa: F821
+def create_app() -> Any:
     """Create and configure the FastAPI dashboard app."""
     from fastapi import FastAPI
     from fastapi.responses import HTMLResponse
@@ -16,7 +21,7 @@ def create_app() -> "FastAPI":  # noqa: F821
     from ai_bom.dashboard.frontend import get_dashboard_html
 
     @asynccontextmanager
-    async def lifespan(app: FastAPI):
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         init_db()
         yield
 

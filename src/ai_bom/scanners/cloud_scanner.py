@@ -147,18 +147,13 @@ class CloudScanner(BaseScanner):
         if path.is_file():
             # Support .tf files and potential CloudFormation templates
             ext = path.suffix.lower()
-            if ext == ".tf":
-                return True
-            if ext in {".yml", ".yaml", ".json"}:
-                # Could be a CloudFormation template - let scan handle detection
-                return True
-            return False
+            return ext == ".tf" or ext in {".yml", ".yaml", ".json"}
 
         # For directories, check if any .tf or CloudFormation files exist
         if path.is_dir():
             # Check for .tf files
             try:
-                for file in path.rglob("*.tf"):
+                for _ in path.rglob("*.tf"):
                     return True
             except (OSError, PermissionError):
                 pass
@@ -217,9 +212,8 @@ class CloudScanner(BaseScanner):
 
         if ext == ".tf":
             return self._scan_terraform(file_path)
-        elif ext in {".yml", ".yaml", ".json"}:
-            if self._is_cloudformation_file(file_path):
-                return self._scan_cloudformation(file_path)
+        elif ext in {".yml", ".yaml", ".json"} and self._is_cloudformation_file(file_path):
+            return self._scan_cloudformation(file_path)
 
         return []
 
@@ -478,7 +472,7 @@ class CloudScanner(BaseScanner):
         """
 
         # Define a custom constructor that returns the tag value as a string
-        def cloudformation_constructor(loader, node):
+        def cloudformation_constructor(loader: Any, node: yaml.Node) -> Any:
             """Constructor for CloudFormation intrinsic functions."""
             if isinstance(node, yaml.ScalarNode):
                 return loader.construct_scalar(node)
@@ -508,7 +502,8 @@ class CloudScanner(BaseScanner):
         for tag in cf_tags:
             yaml.add_constructor(tag, cloudformation_constructor, Loader=loader)
 
-        return yaml.load(content, Loader=loader)
+        result: dict[str, Any] = yaml.load(content, Loader=loader)  # noqa: S506 — loader IS SafeLoader
+        return result
 
     def _is_cloudformation_file(self, file_path: Path) -> bool:
         """Check if a file is a CloudFormation template.
@@ -537,10 +532,10 @@ class CloudScanner(BaseScanner):
             else:
                 return False
 
-            if isinstance(data, dict):
-                # CloudFormation templates have AWSTemplateFormatVersion or Resources
-                if "AWSTemplateFormatVersion" in data or "Resources" in data:
-                    return True
+            if isinstance(data, dict) and (
+                "AWSTemplateFormatVersion" in data or "Resources" in data
+            ):
+                return True
 
         except (OSError, yaml.YAMLError, json.JSONDecodeError, UnicodeDecodeError):
             pass
