@@ -1,140 +1,164 @@
 <div align="center">
-  <img src="assets/logo.png" alt="Trusera Logo" width="80" />
+  <img src="assets/logo.png" alt="AI-BOM Logo" width="80" />
   <h1>AI-BOM</h1>
   <p><strong>Discover every AI agent, model, and API hiding in your infrastructure</strong></p>
+
+  <!-- badges -->
+  <p>
+    <a href="https://pypi.org/project/ai-bom/"><img src="https://img.shields.io/pypi/v/ai-bom.svg" alt="PyPI" /></a>
+    <img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python 3.10+" />
+    <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" />
+    <img src="https://img.shields.io/badge/CycloneDX-1.6-green.svg" alt="CycloneDX 1.6" />
+    <img src="https://img.shields.io/badge/tests-651%20passing-brightgreen.svg" alt="Tests" />
+    <img src="https://img.shields.io/badge/coverage-81%25-brightgreen.svg" alt="Coverage" />
+    <img src="https://img.shields.io/badge/PRs-welcome-orange.svg" alt="PRs Welcome" />
+  </p>
 
   <p>
     <a href="#quick-start">Quick Start</a> &nbsp;|&nbsp;
     <a href="#what-it-finds">What It Finds</a> &nbsp;|&nbsp;
-    <a href="#demo">Demo</a> &nbsp;|&nbsp;
+    <a href="#comparison">Comparison</a> &nbsp;|&nbsp;
+    <a href="#architecture">Architecture</a> &nbsp;|&nbsp;
     <a href="#output-formats">Output Formats</a> &nbsp;|&nbsp;
-    <a href="#n8n-workflow-scanning-first-of-its-kind">n8n Scanning</a> &nbsp;|&nbsp;
-    <a href="#risk-scoring">Risk Scoring</a> &nbsp;|&nbsp;
-    <a href="#scan-levels">Scan Levels</a>
+    <a href="#cicd-integration">CI/CD</a> &nbsp;|&nbsp;
+    <a href="#scan-levels">Scan Levels</a> &nbsp;|&nbsp;
+    <a href="#dashboard">Dashboard</a>
   </p>
-
-  <!-- badges -->
-  <p>
-    <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" />
-    <img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python" />
-    <img src="https://img.shields.io/badge/CycloneDX-1.6-green.svg" alt="CycloneDX" />
-    <img src="https://img.shields.io/badge/tests-passing-brightgreen.svg" alt="Tests" />
-    <img src="https://img.shields.io/badge/PRs-welcome-orange.svg" alt="PRs Welcome" />
-  </p>
-</div>
-
----
-
-<div align="center">
-  <img src="assets/demo.gif" alt="AI-BOM Demo — scanning infrastructure for AI components" width="800" />
-  <br />
-  <sub>Scan your entire infrastructure in seconds</sub>
 </div>
 
 ---
 
 ## Why AI-BOM?
 
-<img align="right" src="assets/maskot.png" width="180" alt="AI-BOM Mascot" />
+- **EU AI Act (Article 53, Aug 2025)** requires a complete AI component inventory. No existing SBOM tool covers AI.
+- **60%+ of AI usage is undocumented** — shadow AI is the new shadow IT. Developers ship LLM integrations, agent frameworks, and MCP servers without security review.
+- **First tool to scan n8n workflows for AI** — n8n is the backbone of enterprise AI automation, but completely invisible to Trivy, Syft, and Grype.
 
-Shadow AI is the new Shadow IT. Developers are integrating AI services — LLMs, agents, embeddings, MCP servers — without security review. Organizations face real compliance gaps:
-
-- **EU AI Act (Article 53, Aug 2025)** — requires a complete AI component inventory
-- **NIST AI Agent Security (Jan 2026)** — mandates agent trust boundaries
-- **60%+ of AI usage is undocumented** — shadow AI is everywhere
-- **No existing tool scans n8n workflows for AI** — until now
-
-**ai-bom** is a single CLI that scans source code, Docker configs, cloud infrastructure, network endpoints, and n8n workflows — then produces a standards-compliant AI Bill of Materials.
-
-**One command. Complete visibility.**
-
-<br clear="right" />
+One command. 13 scanners. 9 output formats. Standards-compliant AI Bill of Materials.
 
 ## Quick Start
 
-### Recommended: Install with pipx (isolated environment)
-
 ```bash
 pipx install ai-bom
-
 ai-bom scan .
-ai-bom scan . --format cyclonedx --output ai-bom.json
 ```
 
-### Alternative: Install in a virtual environment
+That's it. Scans your project and prints a risk-scored inventory of every AI component found.
+
+```bash
+# CycloneDX SBOM for compliance
+ai-bom scan . -f cyclonedx -o ai-bom.cdx.json
+
+# SARIF for GitHub Code Scanning
+ai-bom scan . -f sarif -o results.sarif
+
+# Fail CI on critical findings
+ai-bom scan . --fail-on critical --quiet
+```
+
+<details>
+<summary>Alternative: Install in a virtual environment</summary>
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install ai-bom
-
 ai-bom scan .
 ```
 
-### Troubleshooting: PEP 668 / "externally-managed-environment" error
+</details>
 
-Modern Linux distros (Ubuntu 24.04+, Fedora 39+) and macOS 14+ block `pip install` at the system level. If you see `error: externally-managed-environment`, use **pipx** (recommended) or a **venv** as shown above. Do **not** use `--break-system-packages`.
+<details>
+<summary>Troubleshooting: PEP 668 / "externally-managed-environment" error</summary>
+
+Modern Linux distros (Ubuntu 24.04+) and macOS 14+ block `pip install` at the system level. Use **pipx** (recommended) or a **venv** as shown above.
 
 ```bash
-# Install pipx if needed
 sudo apt install pipx   # Debian/Ubuntu
 brew install pipx        # macOS
-
 pipx install ai-bom
 ```
+
+</details>
 
 ## What It Finds
 
 | Category | Examples | Scanner |
 |----------|----------|---------|
-| LLM Providers | OpenAI, Anthropic, Google AI, Mistral, Cohere, Ollama | Code |
+| LLM Providers | OpenAI, Anthropic, Google AI, Mistral, Cohere, Ollama, DeepSeek | Code |
 | Agent Frameworks | LangChain, CrewAI, AutoGen, LlamaIndex, LangGraph | Code |
 | Model References | gpt-4o, claude-3-5-sonnet, gemini-1.5-pro, llama-3 | Code |
 | API Keys | OpenAI (sk-\*), Anthropic (sk-ant-\*), HuggingFace (hf\_\*) | Code, Network |
-| AI Containers | Ollama, vLLM, HuggingFace, NVIDIA, ChromaDB | Docker |
-| Cloud AI | AWS Bedrock, SageMaker, Comprehend, Kendra, Lex \| Azure OpenAI, AI Foundry, ML \| Google Vertex AI, Dialogflow CX | Cloud |
+| AI Containers | Ollama, vLLM, HuggingFace TGI, NVIDIA Triton, ChromaDB | Docker |
+| Cloud AI | AWS Bedrock/SageMaker \| Azure OpenAI/ML \| Google Vertex AI | Cloud |
 | AI Endpoints | api.openai.com, api.anthropic.com, localhost:11434 | Network |
 | n8n AI Nodes | AI Agents, LLM Chat, MCP Client, Tools, Embeddings | n8n |
-| MCP Servers | Model Context Protocol connections | Code, n8n, Network |
+| MCP Servers | Model Context Protocol server configurations | Code, MCP Config |
 | A2A Protocol | Google Agent-to-Agent protocol | Code |
 | CrewAI Flows | @crew, @agent, @task, @flow decorators | Code, AST |
-| DeepSeek | DeepSeek models and SDK | Code |
+| Jupyter Notebooks | AI imports and model usage in .ipynb files | Jupyter |
+| GitHub Actions | AI-related actions and model deployments | GitHub Actions |
+| Model Files | .gguf, .safetensors, .onnx, .pt binary model files | Model File |
 
-**25+ AI SDKs detected** across Python, JavaScript, TypeScript, Java, Go, Rust, and Ruby. Now with **AST-based deep scanning**, **live cloud API scanning**, and **CI/CD policy enforcement**.
+**25+ AI SDKs detected** across Python, JavaScript, TypeScript, Java, Go, Rust, and Ruby.
 
-## Demo
+## Comparison
 
-```bash
-ai-bom demo
+How does ai-bom compare to existing supply chain security tools?
+
+| Feature | ai-bom | Trivy | Syft | Grype |
+|---------|--------|-------|------|-------|
+| AI/LLM SDK detection | **Yes** | No | No | No |
+| AI model references | **Yes** | No | No | No |
+| Agent framework detection | **Yes** | No | No | No |
+| n8n workflow scanning | **Yes** | No | No | No |
+| MCP server detection | **Yes** | No | No | No |
+| AI-specific risk scoring | **Yes** | No | No | No |
+| Cloud AI service detection | **Yes** | No | No | No |
+| Jupyter notebook scanning | **Yes** | No | No | No |
+| CycloneDX SBOM output | **Yes** | Yes | Yes | No |
+| SARIF output (GitHub) | **Yes** | Yes | No | No |
+| Docker AI container detection | **Yes** | Partial | Partial | No |
+| CVE vulnerability scanning | No | Yes | No | Yes |
+| OS package scanning | No | Yes | Yes | Yes |
+
+> **ai-bom doesn't replace Trivy or Syft — it fills the AI-shaped gap they leave behind.**
+
+## Architecture
+
+```mermaid
+graph LR
+    subgraph Input
+        A[Source Code] --> S
+        B[Docker/K8s] --> S
+        C[Network/Env] --> S
+        D[Cloud IaC] --> S
+        E[n8n Workflows] --> S
+        F[Jupyter/.ipynb] --> S
+        G[MCP Configs] --> S
+        H[GitHub Actions] --> S
+        I[Model Files] --> S
+    end
+
+    S[Scanner Engine<br/>13 Auto-Registered Scanners] --> M[Pydantic Models<br/>AIComponent + ScanResult]
+    M --> R[Risk Scorer<br/>0-100 Score + Severity]
+    R --> C2[Compliance Modules<br/>EU AI Act, OWASP, Licenses]
+
+    subgraph Output
+        C2 --> O1[CycloneDX 1.6]
+        C2 --> O2[SARIF 2.1.0]
+        C2 --> O3[SPDX 3.0]
+        C2 --> O4[HTML Dashboard]
+        C2 --> O5[Markdown / CSV / JUnit]
+        C2 --> O6[Rich Terminal Table]
+    end
 ```
 
-Runs a scan on the bundled demo project showcasing all detection capabilities:
-
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  AI-BOM Discovery Scanner by Trusera
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-✓ Running code scanner...       done
-✓ Running docker scanner...     done
-✓ Running network scanner...    done
-✓ Running cloud scanner...      done
-✓ Running n8n scanner...        done
-
-Found 40 AI/LLM component(s)
-
-┌──────────────────────┬────────────────────┬──────┬──────────┐
-│ Component            │ Type               │ Risk │ Severity │
-├──────────────────────┼────────────────────┼──────┼──────────┤
-│ OpenAI SDK           │ LLM Provider       │   30 │ CRITICAL │
-│ Anthropic SDK        │ LLM Provider       │   25 │ HIGH     │
-│ LangChain            │ Agent Framework    │   20 │ HIGH     │
-│ gpt-4o               │ Model Reference    │   15 │ MEDIUM   │
-│ AI Agent Node        │ n8n AI Node        │   30 │ CRITICAL │
-│ MCP Client           │ n8n MCP            │   25 │ HIGH     │
-│ Ollama Container     │ AI Container       │   10 │ MEDIUM   │
-│ ...                  │                    │      │          │
-└──────────────────────┴────────────────────┴──────┴──────────┘
-```
+**Key design decisions:**
+- Scanners auto-register via `__init_subclass__` — add a new scanner in one file, zero wiring
+- Regex-based detection (not AST by default) for speed and cross-language support
+- CycloneDX 1.6 JSON generated directly from dicts — no heavy dependencies
+- Risk scoring is a pure stateless function
+- Parallel scanner execution via thread pool
 
 ## Output Formats
 
@@ -144,159 +168,94 @@ Found 40 AI/LLM component(s)
 ai-bom scan .
 ```
 
-Rich terminal output with color-coded risk levels, severity badges, and component grouping.
+Rich terminal output with color-coded severity, risk scores, and component grouping.
 
 ### CycloneDX 1.6
 
 ```bash
-ai-bom scan . --format cyclonedx --output ai-bom.cdx.json
+ai-bom scan . -f cyclonedx -o ai-bom.cdx.json
 ```
 
-Industry-standard SBOM format compatible with OWASP Dependency-Track and other SBOM tools. Includes Trusera-specific properties for AI risk metadata.
+Industry-standard SBOM format. Compatible with OWASP Dependency-Track. Includes Trusera AI risk properties.
 
-### HTML Dashboard
+<details>
+<summary>Example output snippet</summary>
+
+```json
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "components": [
+    {
+      "type": "library",
+      "name": "openai",
+      "version": "1.x",
+      "properties": [
+        { "name": "trusera:ai-bom:risk-score", "value": "45" },
+        { "name": "trusera:ai-bom:severity", "value": "medium" }
+      ]
+    }
+  ]
+}
+```
+
+</details>
+
+### SARIF 2.1.0
 
 ```bash
-ai-bom scan . --format html --output report.html
+ai-bom scan . -f sarif -o results.sarif
 ```
 
-Self-contained dark-mode dashboard with sortable tables, severity charts, and risk breakdowns. Share with stakeholders — no server required.
+Upload to GitHub Code Scanning for inline annotations on AI components.
 
-### AI-BOM Extended SPDX
+### Other formats
 
-```bash
-ai-bom scan . --format spdx3 --output report.spdx.json
+| Format | Flag | Use case |
+|--------|------|----------|
+| HTML | `-f html` | Shareable dashboard — no server required |
+| Markdown | `-f markdown` | PR comments, documentation |
+| SPDX 3.0 | `-f spdx3` | SPDX-compatible with AI extensions |
+| CSV | `-f csv` | Spreadsheet analysis |
+| JUnit | `-f junit` | CI/CD test reporting |
+| JSON | `-f json` | Alias for CycloneDX |
+
+## CI/CD Integration
+
+### GitHub Actions
+
+```yaml
+name: AI-BOM Scan
+on: [push, pull_request]
+
+jobs:
+  ai-bom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install AI-BOM
+        run: pipx install ai-bom
+
+      - name: Scan for AI components
+        run: ai-bom scan . --fail-on critical --quiet -f sarif -o results.sarif
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+        if: always()
 ```
 
-SPDX 3.0-inspired JSON-LD output with AI-BOM extensions (`ai-bom:AIPackage`, `ai-bom:safetyRiskAssessment`). These extensions provide AI-specific metadata beyond what standard SPDX currently supports. Not validated against the official SPDX 3.0 spec.
-
-### Markdown
-
-```bash
-ai-bom scan . --format markdown --output report.md
-```
-
-GitHub-flavored markdown for CI/CD integration, pull request comments, and documentation.
-
-## n8n Workflow Scanning — First of Its Kind
-
-**ai-bom is the first and only tool that scans n8n workflows for AI components.**
-
-n8n is rapidly becoming the backbone of enterprise AI automation, but existing security tools are completely blind to it. ai-bom detects:
-
-- AI Agent nodes and their connected models
-- MCP client connections to external servers
-- Webhook triggers without authentication
-- Agent-to-agent chains via Execute Workflow
-- Dangerous tool combinations (Code + HTTP Request)
-- Hardcoded credentials in workflow JSON
-
-```bash
-# Scan workflow files
-ai-bom scan ./workflows/
-
-# Scan local n8n installation
-ai-bom scan . --n8n-local
-```
-
-### n8n Risk Factors
-
-| Risk | Score | Description |
-|------|-------|-------------|
-| Hardcoded credentials | +30 | API keys in workflow JSON instead of credential store |
-| Code + HTTP tools | +30 | Agent can execute code AND make HTTP requests |
-| Webhook no auth | +25 | Webhook trigger without authentication |
-| MCP unknown server | +20 | MCP client connected to non-localhost server |
-| Agent chain no validation | +20 | Agent-to-agent execution without input validation |
-
-## Risk Scoring
-
-Every component receives a risk score (0–100):
-
-| Severity | Score Range | Color |
-|----------|-------------|-------|
-| Critical | 76–100 | Red |
-| High | 51–75 | Yellow |
-| Medium | 26–50 | Blue |
-| Low | 0–25 | Green |
-
-### Risk Factors
-
-| Factor | Points | Description |
-|--------|--------|-------------|
-| Hardcoded API key | +30 | API key found in source code |
-| Shadow AI | +25 | AI dependency not declared in project files |
-| Internet-facing | +20 | AI endpoint exposed to internet |
-| Multi-agent no trust | +20 | Multi-agent system without trust boundaries |
-| No authentication | +15 | AI endpoint without auth |
-| No rate limiting | +10 | No rate limiting on AI endpoint |
-| Deprecated model | +10 | Using deprecated AI model |
-| Unpinned model | +5 | Model version not pinned |
-
-## Scan Levels
-
-ai-bom's detection depth depends on the permissions available at scan time. Each level progressively reveals more shadow AI:
-
-| Level | Access Required | What It Finds | Scanner |
-|-------|----------------|---------------|---------|
-| **Level 1 — File System** | Read-only file access | Source code imports, dependency files, config files, IaC definitions, n8n workflow JSON | Code, Cloud, n8n |
-| **Level 2 — Docker** | + Docker socket access | Running AI containers, GPU allocations, AI model images | Docker |
-| **Level 3 — Network** | + Network/env file access | API endpoints, hardcoded API keys, .env configurations | Network |
-| **Level 4 — Cloud IAM** | + Cloud provider credentials | Managed AI services (Bedrock, SageMaker, Vertex AI, Azure OpenAI) provisioned at infrastructure level | Cloud |
-
-### What each level requires
-
-**Level 1 (default)** — Works out of the box. Just point ai-bom at a directory or Git URL:
-```bash
-ai-bom scan .
-ai-bom scan https://github.com/org/repo.git
-```
-
-**Level 2** — Requires access to Docker socket or compose files in the scan path. No additional configuration needed if Dockerfiles/compose files are in the repo.
-
-**Level 3** — Scans `.env`, `.env.local`, `.env.production`, and config files (`.yaml`, `.json`, `.toml`, `.ini`). Detects both endpoint URLs and hardcoded API keys. For maximum coverage, ensure environment files are accessible (they're often gitignored).
-
-**Level 4** — Scans Terraform (`.tf`) and CloudFormation (`.yaml`, `.json`) files for cloud-provisioned AI services. Covers 60+ AWS, Azure, and GCP resource types.
-
-**Level 5 — Live Cloud API** — Scan running cloud accounts for managed AI services:
-```bash
-pip install ai-bom[aws]    # or ai-bom[gcp] or ai-bom[azure]
-ai-bom scan-cloud aws      # Bedrock, SageMaker, Comprehend, Kendra
-ai-bom scan-cloud gcp      # Vertex AI, Dialogflow CX
-ai-bom scan-cloud azure    # Azure OpenAI, Cognitive Services, Azure ML
-```
-
-> **Tip:** For CI/CD pipelines, Level 1-3 are automatic. Level 4 requires IaC files in the repo. Level 5 requires cloud provider credentials.
-
-## Web Dashboard
-
-```bash
-pip install ai-bom[dashboard]
-
-# Save scan results to dashboard
-ai-bom scan . --save-dashboard
-
-# Launch the dashboard
-ai-bom dashboard
-```
-
-Opens a local web dashboard at http://127.0.0.1:8000 with:
-- Scan history with timestamps, targets, and component counts
-- Drill-down into individual scans with sortable component tables
-- Severity distribution charts and risk score visualizations
-- Side-by-side scan comparison
-
-## CI/CD Policy Enforcement
+### Policy enforcement
 
 ```bash
 # Fail CI if any critical findings
 ai-bom scan . --fail-on critical --quiet
 
-# Use a YAML policy file
+# Use a YAML policy file for fine-grained control
 ai-bom scan . --policy .ai-bom-policy.yml --quiet
 ```
-
-Policy files support thresholds, blocked providers, and blocked flags:
 
 ```yaml
 # .ai-bom-policy.yml
@@ -309,155 +268,79 @@ block_flags:
   - hardcoded_credentials
 ```
 
-### GitHub Action
+## Scan Levels
 
-```yaml
-- uses: trusera/ai-bom@v2
-  with:
-    fail-on: critical
-    policy-file: .ai-bom-policy.yml
+ai-bom's detection depth depends on the access available at scan time:
+
+| Level | Access Required | What It Finds | Scanner |
+|-------|----------------|---------------|---------|
+| **L1 — File System** | Read-only file access | Source code imports, configs, IaC, n8n JSON, notebooks | Code, Cloud, n8n, Jupyter, MCP Config |
+| **L2 — Docker** | + Docker socket | Running AI containers, GPU allocations | Docker |
+| **L3 — Network** | + Env files | API endpoints, hardcoded keys, .env secrets | Network |
+| **L4 — Cloud IaC** | + Terraform/CFN files | 60+ AWS/Azure/GCP AI resource types | Cloud |
+| **L5 — Live Cloud** | + Cloud credentials | Managed AI services via cloud APIs | AWS/GCP/Azure Live |
+
+```bash
+# L1 (default) — works out of the box
+ai-bom scan .
+
+# L5 — live cloud scanning
+pip install ai-bom[aws]
+ai-bom scan-cloud aws
 ```
 
-## Deep Scanning (AST Mode)
+### Deep scanning (AST mode)
 
 ```bash
 ai-bom scan . --deep
 ```
 
-Enables Python AST-based analysis that detects:
-- Import statements for AI packages
-- Decorator patterns (`@agent`, `@tool`, `@crew`, `@task`, `@flow`)
-- Function calls to AI APIs
-- String literals containing model names
+Enables Python AST analysis for decorator patterns (`@agent`, `@tool`, `@crew`, `@flow`), function calls to AI APIs, and string literals containing model names.
 
-## Comparison
-
-How does ai-bom compare to existing supply chain tools?
-
-| Feature | ai-bom | Trivy | Syft | Grype |
-|---------|--------|-------|------|-------|
-| AI/LLM SDK detection | **Yes** | No | No | No |
-| AI model references | **Yes** | No | No | No |
-| Agent framework detection | **Yes** | No | No | No |
-| n8n workflow scanning | **Yes** | No | No | No |
-| MCP server detection | **Yes** | No | No | No |
-| AI-specific risk scoring | **Yes** | No | No | No |
-| SARIF output (GitHub Code Scanning) | **Yes** | Yes | No | No |
-| Single-file scanning | **Yes** | Yes | Yes | No |
-| Git URL scanning (auto-clone) | **Yes** | Yes | No | No |
-| CycloneDX SBOM output | **Yes** | Yes | Yes | No |
-| Docker AI container detection | **Yes** | Partial | Partial | No |
-| Cloud AI service detection | **Yes** | No | No | No |
-| CVE vulnerability scanning | No | Yes | No | Yes |
-| OS package scanning | No | Yes | Yes | Yes |
-
-> **ai-bom doesn't replace Trivy or Syft — it fills the AI-shaped gap they leave behind.**
-
-## How It Works
-
-```
-src/ai_bom/
-├── cli.py              # Typer CLI entry point
-├── config.py           # Detection patterns as data
-├── models.py           # Pydantic v2 data models
-├── scanners/           # Auto-registered scanner plugins
-│   ├── code_scanner    # Source code analysis (21+ SDKs, 7 languages)
-│   ├── docker_scanner  # Container image detection
-│   ├── network_scanner # Endpoint & API key detection
-│   ├── cloud_scanner   # Terraform / CloudFormation
-│   └── n8n_scanner     # n8n workflow analysis
-├── detectors/          # Pattern registries
-│   ├── llm_patterns    # SDK import/usage patterns
-│   ├── model_registry  # Known model database
-│   └── endpoint_db     # API endpoint patterns
-├── reporters/          # Output formatters
-│   ├── cli_reporter    # Rich terminal output
-│   ├── cyclonedx       # CycloneDX 1.6 JSON
-│   ├── sarif           # SARIF 2.1.0 for GitHub Code Scanning
-│   ├── html_reporter   # Self-contained dashboard
-│   └── markdown        # GFM report
-└── utils/
-    └── risk_scorer     # Stateless risk engine
-```
-
-Scanners auto-register via `__init_subclass__`. Adding a new scanner is a single file — no wiring needed.
-
-## Development
+## Dashboard
 
 ```bash
-git clone https://github.com/trusera/ai-bom.git
-cd ai-bom
-pip install -e ".[dev]"
+pip install ai-bom[dashboard]
 
-# Run tests
-pytest tests/ -v
-
-# Run demo
-ai-bom demo
+ai-bom scan . --save-dashboard   # Save scan results
+ai-bom dashboard                  # Launch at http://127.0.0.1:8000
 ```
 
-## CLI Reference
+The web dashboard provides:
+- Scan history with timestamps, targets, and component counts
+- Drill-down into individual scans with sortable component tables
+- Severity distribution charts and risk score visualizations
+- Side-by-side scan comparison (diff view)
 
-```
-Usage: ai-bom [OPTIONS] COMMAND [ARGS]...
+### n8n workflow scanning
 
-Commands:
-  scan        Scan a directory or repository for AI/LLM components
-  scan-cloud  Scan cloud provider for managed AI/ML services
-  dashboard   Launch the AI-BOM web dashboard
-  demo        Run demo scan on bundled example project
-  version     Show AI-BOM version
+```bash
+# Scan workflow JSON files
+ai-bom scan ./workflows/
 
-Scan Options:
-  --format, -f       Output format: table | cyclonedx | json | html | markdown | sarif | spdx3
-  --output, -o       Write report to file
-  --severity, -s     Minimum severity: critical | high | medium | low
-  --deep             Enable AST-based deep scanning
-  --quiet, -q        Suppress banner/progress (for CI)
-  --fail-on          Exit code 1 if severity threshold met: critical | high | medium | low
-  --policy           Path to YAML policy file for CI/CD enforcement
-  --save-dashboard   Save results to dashboard database
-  --n8n-url          n8n instance URL for live API scanning
-  --n8n-api-key      n8n API key for live scanning
-  --n8n-local        Scan ~/.n8n/ directory for workflows
-  --no-color         Disable colored output
+# Scan local n8n installation
+ai-bom scan . --n8n-local
+
+# Scan running n8n instance via API
+ai-bom scan . --n8n-url http://localhost:5678 --n8n-api-key YOUR_KEY
 ```
 
-## Roadmap
-
-- [x] Multi-language AI SDK detection (Python, JS, TS, Java, Go, Rust, Ruby)
-- [x] CycloneDX 1.6 SBOM output
-- [x] AI-BOM Extended SPDX output (SPDX 3.0-inspired with AI extensions)
-- [x] n8n workflow scanning
-- [x] Live n8n API integration (scan running instances)
-- [x] MCP server detection + MCP config file parsing
-- [x] HTML dashboard reports
-- [x] Interactive web dashboard (FastAPI + SQLite)
-- [x] Risk scoring engine
-- [x] AST-based scanning for deeper analysis (`--deep`)
-- [x] SARIF output format (GitHub Code Scanning integration)
-- [x] GitHub Actions marketplace action (`trusera/ai-bom@v2`)
-- [x] Single-file scanning
-- [x] CI/CD policy enforcement (`--fail-on`, `--policy`)
-- [x] Live cloud API scanning (AWS, GCP, Azure)
-- [x] A2A protocol detection
-- [x] CrewAI flow detection
-- [x] DeepSeek, GPT-4.5, Claude 4/4.5, Gemini 2.0, Llama 4 model patterns
-- [ ] VS Code extension
-- [ ] Scheduled continuous monitoring
-- [ ] AI agent runtime tracing
+Detects AI Agent nodes, MCP client connections, webhook triggers without auth, dangerous tool combinations, and hardcoded credentials in workflow JSON.
 
 ## Contributing
 
-Contributions are welcome! ai-bom is open source and we'd love your help making it better.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-scanner`)
-3. Write tests for your changes
-4. Ensure all tests pass (`pytest tests/ -v`)
-5. Submit a pull request
+```bash
+git clone https://github.com/trusera/ai-bom.git && cd ai-bom
+pip install -e ".[dev]"
+pytest tests/ -v
+```
 
-Whether it's a new scanner, additional detection patterns, bug fixes, or documentation improvements — all contributions are appreciated.
+Quality gates enforced:
+- **ruff** (E,F,I,W,S,B,C4,UP,SIM,N,RUF) — zero lint errors
+- **mypy** strict (`disallow_untyped_defs = true`) — zero type errors
+- **pytest** — 651 tests, 80%+ coverage required
 
 ## License
 
@@ -466,8 +349,6 @@ Apache License 2.0 — see [LICENSE](LICENSE) for details.
 ---
 
 <div align="center">
-  <img src="assets/maskot.png" width="100" alt="AI-BOM Mascot" />
-  <br />
   <strong>Built by <a href="https://trusera.dev">Trusera</a></strong> — Securing the Agentic Service Mesh
   <br />
   <sub>ai-bom is the open-source foundation of the Trusera platform for AI agent security.</sub>
