@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.4.0] - 2026-02-11 (n8n Community Node)
+## [0.2.0] - 2026-02-11 (n8n Community Node)
 
 ### Added
 - **Actionable Remediation Dashboard**: Per-flag risk descriptions, fix steps, and guardrail recommendations
@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Modal widened from 600px to 720px for remediation card readability
 - Workflow names display without `.json` suffix in dashboard
-- Package version bumped from 0.1.0 to 0.4.0
+- Package version bumped from 0.1.0 to 0.2.0 for n8n community node
 - Added `workflow-security` keyword and `bugs` URL to package.json
 - Build script copies SVG/PNG icons to dist automatically
 - README updated with mascot image and n8n Community Node section
@@ -121,8 +121,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docker container distribution
 - Comprehensive test suite covering scanners and reporters
 
-[Unreleased]: https://github.com/trusera/ai-bom/compare/v0.4.0...HEAD
-[0.4.0]: https://github.com/trusera/ai-bom/compare/v3.0.0...v0.4.0
+[Unreleased]: https://github.com/trusera/ai-bom/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/trusera/ai-bom/compare/v3.0.0...v0.2.0
 [3.0.0]: https://github.com/trusera/ai-bom/compare/v2.0.0...v3.0.0
 [2.0.0]: https://github.com/trusera/ai-bom/compare/v0.1.0...v2.0.0
 [0.1.0]: https://github.com/trusera/ai-bom/releases/tag/v0.1.0
