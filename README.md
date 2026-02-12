@@ -259,7 +259,38 @@ Upload to GitHub Code Scanning for inline annotations on AI components.
 
 ## CI/CD Integration
 
-### GitHub Actions
+### GitHub Actions (recommended)
+
+Use the official AI-BOM GitHub Action for one-line CI/CD integration:
+
+```yaml
+name: AI-BOM Scan
+on: [push, pull_request]
+permissions:
+  security-events: write
+  contents: read
+
+jobs:
+  ai-bom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan for AI components
+        uses: trusera/ai-bom@main
+        with:
+          format: sarif
+          output: ai-bom-results.sarif
+          fail-on: critical
+          scan-level: deep
+```
+
+The action handles Python setup, ai-bom installation, and automatic SARIF upload to GitHub Code Scanning.
+
+See [`.github/workflows/ai-bom-example.yml`](.github/workflows/ai-bom-example.yml) for more examples (CycloneDX SBOM, policy gates, artifact uploads).
+
+<details>
+<summary>Manual setup (without the action)</summary>
 
 ```yaml
 name: AI-BOM Scan
@@ -283,6 +314,8 @@ jobs:
           sarif_file: results.sarif
         if: always()
 ```
+
+</details>
 
 ### Policy enforcement
 
@@ -382,6 +415,18 @@ Quality gates enforced:
 ## License
 
 Apache License 2.0 — see [LICENSE](LICENSE) for details.
+
+---
+
+## Star History
+
+<a href="https://star-history.com/#Trusera/ai-bom&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Trusera/ai-bom&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Trusera/ai-bom&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Trusera/ai-bom&type=Date" />
+ </picture>
+</a>
 
 ---
 
