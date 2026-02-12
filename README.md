@@ -9,7 +9,9 @@
     <a href="https://github.com/Trusera/ai-bom/stargazers"><img src="https://img.shields.io/github/stars/Trusera/ai-bom?style=social" alt="GitHub Stars" /></a>
     <a href="https://pypi.org/project/ai-bom/"><img src="https://img.shields.io/pypi/v/ai-bom.svg" alt="PyPI" /></a>
     <a href="https://pypi.org/project/ai-bom/"><img src="https://img.shields.io/pypi/dm/ai-bom.svg" alt="PyPI Downloads" /></a>
-    <a href="https://www.npmjs.com/package/n8n-nodes-trusera"><img src="https://img.shields.io/npm/v/n8n-nodes-trusera.svg" alt="npm" /></a>
+    <a href="https://www.npmjs.com/package/n8n-nodes-trusera"><img src="https://img.shields.io/npm/v/n8n-nodes-trusera.svg" alt="npm n8n" /></a>
+    <a href="https://pypi.org/project/trusera-sdk/"><img src="https://img.shields.io/pypi/v/trusera-sdk.svg?label=trusera-sdk" alt="PyPI SDK" /></a>
+    <a href="https://www.npmjs.com/package/trusera-sdk"><img src="https://img.shields.io/npm/v/trusera-sdk.svg?label=trusera-sdk" alt="npm SDK" /></a>
     <img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python 3.10+" />
     <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" />
     <img src="https://img.shields.io/badge/CycloneDX-1.6-green.svg" alt="CycloneDX 1.6" />
@@ -20,12 +22,15 @@
 
   <p>
     <a href="#quick-start">Quick Start</a> &nbsp;|&nbsp;
+    <a href="#agent-sdks">Agent SDKs</a> &nbsp;|&nbsp;
     <a href="#n8n-community-node">n8n Node</a> &nbsp;|&nbsp;
     <a href="#what-it-finds">What It Finds</a> &nbsp;|&nbsp;
     <a href="#comparison">Comparison</a> &nbsp;|&nbsp;
     <a href="#architecture">Architecture</a> &nbsp;|&nbsp;
     <a href="#output-formats">Output Formats</a> &nbsp;|&nbsp;
     <a href="#cicd-integration">CI/CD</a> &nbsp;|&nbsp;
+    <a href="#cedar-policy-gate">Cedar Policy</a> &nbsp;|&nbsp;
+    <a href="#vs-code-extension">VS Code</a> &nbsp;|&nbsp;
     <a href="#scan-levels">Scan Levels</a> &nbsp;|&nbsp;
     <a href="#dashboard">Dashboard</a>
   </p>
@@ -106,6 +111,38 @@ docker run --rm -v $(pwd):/scan ghcr.io/trusera/ai-bom scan /scan --json | jq '.
 The image is published to `ghcr.io/trusera/ai-bom` on every tagged release.
 
 </details>
+
+## Agent SDKs
+
+Runtime monitoring SDKs for AI agents — intercept HTTP calls, evaluate Cedar policies, and track events in real time.
+
+| Language | Package | Install |
+|----------|---------|---------|
+| **Python** | [`trusera-sdk`](https://pypi.org/project/trusera-sdk/) | `pip install trusera-sdk` |
+| **TypeScript** | [`trusera-sdk`](https://www.npmjs.com/package/trusera-sdk) | `npm install trusera-sdk` |
+| **Go** | [`trusera-sdk-go`](trusera-sdk-go/) | `go get github.com/Trusera/ai-bom/trusera-sdk-go` |
+
+```python
+# Python — 3 lines to monitor any agent
+from trusera_sdk import TruseraClient
+
+client = TruseraClient(api_key="tsk_...", agent_id="my-agent")
+client.track_event("llm_call", {"model": "gpt-4o", "tokens": 150})
+```
+
+```typescript
+// TypeScript — transparent HTTP interception
+import { TruseraClient, TruseraInterceptor } from "trusera-sdk";
+
+const client = new TruseraClient({ apiKey: "tsk_..." });
+const interceptor = new TruseraInterceptor();
+interceptor.install(client, { enforcement: "warn" });
+// All fetch() calls are now monitored
+```
+
+**Framework integrations:** LangChain, CrewAI, AutoGen (Python) | LangChain.js (TypeScript)
+
+See [docs/interceptor-sdks.md](docs/interceptor-sdks.md) for the full guide.
 
 ## n8n Community Node
 
@@ -342,6 +379,19 @@ jobs:
 
 </details>
 
+### GitLab CI
+
+```yaml
+include:
+  - remote: 'https://raw.githubusercontent.com/Trusera/ai-bom/main/templates/gitlab-ci-ai-bom.yml'
+
+variables:
+  AI_BOM_FAIL_ON: "high"
+  AI_BOM_DEEP_SCAN: "true"
+```
+
+See [templates/gitlab-ci-ai-bom.yml](templates/gitlab-ci-ai-bom.yml) for the full template.
+
 ### Policy enforcement
 
 ```bash
@@ -350,6 +400,9 @@ ai-bom scan . --fail-on critical --quiet
 
 # Use a YAML policy file for fine-grained control
 ai-bom scan . --policy .ai-bom-policy.yml --quiet
+
+# Cedar policy gate (see Cedar Policy Gate section)
+python3 scripts/cedar-gate.py scan-results.json .cedar/ai-policy.cedar
 ```
 
 ```yaml
@@ -421,6 +474,41 @@ ai-bom scan . --n8n-url http://localhost:5678 --n8n-api-key YOUR_KEY
 ```
 
 Detects AI Agent nodes, MCP client connections, webhook triggers without auth, dangerous tool combinations, and hardcoded credentials in workflow JSON.
+
+## Cedar Policy Gate
+
+Enforce fine-grained security rules on discovered AI components using Cedar-like policies. Fails the CI pipeline if any component violates a rule.
+
+```cedar
+// .cedar/ai-policy.cedar
+forbid (principal, action, resource)
+when { resource.severity == "critical" };
+
+forbid (principal, action, resource)
+when { resource.component_type == "api_key" };
+
+permit (principal, action, resource);
+```
+
+```yaml
+# GitHub Actions
+- uses: trusera/ai-bom@main
+  with:
+    policy-gate: "true"
+    cedar-policy-file: ".cedar/ai-policy.cedar"
+```
+
+Also available as a [GitLab CI template](templates/gitlab-ci-ai-bom.yml). See [docs/ci-integration.md](docs/ci-integration.md) for details.
+
+## VS Code Extension
+
+Scan your workspace for AI components directly from VS Code. Inline diagnostics, severity decorations, and a results tree view.
+
+```
+ext install trusera.ai-bom-scanner
+```
+
+The extension runs `ai-bom scan` on your workspace and displays findings as VS Code diagnostics with severity-based gutter decorations.
 
 ## Contributing
 
