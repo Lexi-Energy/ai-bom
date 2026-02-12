@@ -263,7 +263,7 @@ export class TruseraInterceptor {
           status: response.status,
           status_text: response.statusText,
           duration_ms: Date.now() - startTime,
-          response_headers: Object.fromEntries(response.headers.entries()),
+          response_headers: (() => { const h: Record<string, string> = {}; response.headers.forEach((v, k) => { h[k] = v; }); return h; })(),
         }
       );
       self.client?.track(responseEvent);
@@ -283,7 +283,7 @@ export class TruseraInterceptor {
    * Extracts request data for policy evaluation and tracking.
    */
   private async extractRequestData(
-    input: RequestInfo | URL,
+    _input: RequestInfo | URL,
     init?: RequestInit
   ): Promise<{ headers: Record<string, string>; body: string | null }> {
     const headers: Record<string, string> = {};

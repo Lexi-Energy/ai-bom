@@ -86,3 +86,24 @@ jobs:
           format: "table"
           fail-on: "high"
           scan-level: "deep"
+
+  # ──────────────────────────────────────────────
+  # Job 5: Cedar policy gate
+  # ──────────────────────────────────────────────
+  # Uses a Cedar-like policy file to enforce fine-grained rules
+  # on discovered AI components. Fails the pipeline if any
+  # component violates a policy rule.
+  cedar-policy-gate:
+    name: Cedar policy gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run AI-BOM scan with Cedar policy
+        uses: trusera/ai-bom@main
+        with:
+          path: "."
+          format: "table"
+          scan-level: "deep"
+          policy-gate: "true"
+          cedar-policy-file: ".cedar/ai-policy.cedar"
