@@ -92,27 +92,35 @@ pipx install ai-bom
 
 ## n8n Community Node
 
-Scan all your n8n workflows for AI security risks — directly inside n8n.
+Scan all your n8n workflows for AI security risks — directly inside n8n. One node, full dashboard.
 
-```bash
-npm install n8n-nodes-trusera
-```
+**Install:** Settings > Community Nodes > `n8n-nodes-trusera`
 
-Or install via the n8n UI: **Settings > Community Nodes > Install > `n8n-nodes-trusera`**
+### Setup (1 minute)
 
-### Setup
+1. Add the **Trusera Webhook** node to a workflow
+2. Add your n8n API credential (Settings > n8n API > Create API Key)
+3. Activate the workflow
+4. Visit `http://your-n8n-url/webhook/trusera`
 
-1. Add a **Trusera Dashboard** node to a workflow
-2. Create credentials with your n8n API URL and API key
-3. Optionally set a dashboard password for AES-256-GCM encryption
-4. Execute the node — it fetches all workflows, scans them, and returns an interactive HTML dashboard
+That's it. The node fetches all workflows, scans them, and serves an interactive HTML dashboard.
+
+### Included Nodes
+
+| Node | Purpose |
+|------|---------|
+| **Trusera Webhook** | One-node dashboard at `/webhook/trusera` (recommended) |
+| **Trusera Dashboard** | Chain with built-in Webhook for custom setups |
+| **Trusera Scan** | Programmatic scanning — returns JSON for CI/CD pipelines |
+| **Trusera Policy** | Security gates — pass/fail against configurable policies |
+| **Trusera Report** | Markdown/JSON reports for Slack, email, or docs |
 
 ### Dashboard features
 
-- Severity distribution charts and risk score stat cards
-- Sortable findings table with search and severity/type filters
-- Per-finding remediation cards with actionable fix steps and guardrail recommendations
-- OWASP LLM Top 10 category mapping for every risk flag
+- Severity distribution charts, component type breakdown, and OWASP LLM Top 10 mapping
+- Scanned workflows table with trigger type, component count, and risk severity
+- Sortable findings table with search, severity/type/workflow filters
+- Per-finding remediation cards with actionable fix steps
 - CSV and JSON export
 - Light/dark theme toggle
 - Optional password protection (AES-256-GCM encrypted, client-side decryption)
