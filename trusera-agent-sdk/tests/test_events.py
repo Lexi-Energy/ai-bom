@@ -1,8 +1,5 @@
 """Tests for event types and structures."""
 
-import pytest
-from datetime import datetime, timezone
-
 from trusera_sdk import Event, EventType
 
 

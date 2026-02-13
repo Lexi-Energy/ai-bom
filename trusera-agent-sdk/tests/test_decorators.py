@@ -1,10 +1,23 @@
 """Tests for decorator functionality."""
 
-import pytest
 import asyncio
-from unittest.mock import Mock
 
-from trusera_sdk import monitor, set_default_client, EventType
+import pytest
+
+from trusera_sdk import EventType, monitor, set_default_client
+
+# Check if pytest-asyncio is available
+try:
+    import pytest_asyncio  # noqa: F401
+
+    PYTEST_ASYNCIO_AVAILABLE = True
+except ImportError:
+    PYTEST_ASYNCIO_AVAILABLE = False
+
+# Skip marker for async tests
+skip_if_no_asyncio = pytest.mark.skipif(
+    not PYTEST_ASYNCIO_AVAILABLE, reason="pytest-asyncio not installed"
+)
 
 
 def test_monitor_sync_function(trusera_client):
@@ -28,9 +41,10 @@ def test_monitor_sync_function(trusera_client):
     assert event.payload["arguments"]["y"] == 3
     assert event.payload["result"] == 5
     assert event.metadata["success"] is True
-    assert event.metadata["duration_ms"] > 0
+    assert event.metadata["duration_ms"] >= 0  # Can be 0 for very fast functions
 
 
+@skip_if_no_asyncio
 @pytest.mark.asyncio
 async def test_monitor_async_function(trusera_client):
     """Test @monitor decorator on async function."""
@@ -118,7 +132,7 @@ def test_monitor_with_exception(trusera_client):
     def failing_function() -> None:
         raise ValueError("Something went wrong")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Something went wrong"):
         failing_function()
 
     event = trusera_client._queue.get()
@@ -127,6 +141,7 @@ def test_monitor_with_exception(trusera_client):
     assert event.payload["error"]["message"] == "Something went wrong"
 
 
+@skip_if_no_asyncio
 @pytest.mark.asyncio
 async def test_monitor_async_with_exception(trusera_client):
     """Test @monitor on async function with exception."""
@@ -174,6 +189,7 @@ def test_monitor_without_client(caplog):
 
 def test_monitor_preserves_function_metadata():
     """Test that @monitor preserves function metadata."""
+
     @monitor()
     def documented_function(x: int) -> int:
         """This is a docstring."""

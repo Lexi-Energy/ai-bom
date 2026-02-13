@@ -3,14 +3,13 @@
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import httpx
 import pytest
 
 from trusera_sdk import (
     CedarEvaluator,
-    EvaluationResult,
     PolicyAction,
     PolicyDecision,
     RequestBlockedError,
@@ -31,9 +30,10 @@ def create_mock_response(status_code=200, text="OK"):
 
 # Cedar Policy Tests
 
+
 def test_parse_simple_forbid_rule():
     """Test parsing a simple forbid rule."""
-    policy = '''
+    policy = """
     forbid (
         principal,
         action == Action::"http",
@@ -41,7 +41,7 @@ def test_parse_simple_forbid_rule():
     ) when {
         request.hostname == "deepseek.com"
     };
-    '''
+    """
 
     rules = parse_policy(policy)
     assert len(rules) == 1
@@ -53,7 +53,7 @@ def test_parse_simple_forbid_rule():
 
 def test_parse_multiple_rules():
     """Test parsing multiple rules."""
-    policy = '''
+    policy = """
     // Block DeepSeek API
     forbid (principal, action == Action::"http", resource)
     when { request.hostname contains "deepseek.com" };
@@ -65,7 +65,7 @@ def test_parse_multiple_rules():
     // Block POST to upload endpoints
     forbid (principal, action == Action::"http", resource)
     when { request.path contains "/upload" };
-    '''
+    """
 
     rules = parse_policy(policy)
     assert len(rules) == 3
@@ -77,11 +77,11 @@ def test_parse_multiple_rules():
 
 def test_parse_rule_with_comments():
     """Test that comments are properly stripped."""
-    policy = '''
+    policy = """
     // This is a comment
     forbid (principal, action == Action::"http", resource)
     when { request.hostname == "bad.com" }; // inline comment
-    '''
+    """
 
     rules = parse_policy(policy)
     assert len(rules) == 1
@@ -90,10 +90,10 @@ def test_parse_rule_with_comments():
 
 def test_evaluate_forbid_hostname():
     """Test forbid rule on hostname."""
-    policy = '''
+    policy = """
     forbid (principal, action == Action::"http", resource)
     when { request.hostname == "deepseek.com" };
-    '''
+    """
 
     evaluator = CedarEvaluator.from_text(policy)
 
@@ -109,10 +109,10 @@ def test_evaluate_forbid_hostname():
 
 def test_evaluate_forbid_url_contains():
     """Test forbid rule with contains operator."""
-    policy = '''
+    policy = """
     forbid (principal, action == Action::"http", resource)
     when { request.url contains "api.deepseek.com" };
-    '''
+    """
 
     evaluator = CedarEvaluator.from_text(policy)
 
@@ -127,10 +127,10 @@ def test_evaluate_forbid_url_contains():
 
 def test_evaluate_forbid_method():
     """Test forbid rule on HTTP method."""
-    policy = '''
+    policy = """
     forbid (principal, action == Action::"http", resource)
     when { request.method == "DELETE" };
-    '''
+    """
 
     evaluator = CedarEvaluator.from_text(policy)
 
@@ -145,10 +145,10 @@ def test_evaluate_forbid_method():
 
 def test_evaluate_forbid_path():
     """Test forbid rule on URL path."""
-    policy = '''
+    policy = """
     forbid (principal, action == Action::"http", resource)
     when { request.path contains "/admin" };
-    '''
+    """
 
     evaluator = CedarEvaluator.from_text(policy)
 
@@ -163,13 +163,13 @@ def test_evaluate_forbid_path():
 
 def test_evaluate_permit_rule():
     """Test explicit permit rule."""
-    policy = '''
+    policy = """
     forbid (principal, action == Action::"http", resource)
     when { request.hostname contains "external" };
 
     permit (principal, action == Action::"http", resource)
     when { request.hostname == "external-trusted.com" };
-    '''
+    """
 
     evaluator = CedarEvaluator.from_text(policy)
 
@@ -200,10 +200,10 @@ def test_evaluate_no_rules():
 
 def test_evaluate_case_insensitive():
     """Test that evaluation is case-insensitive."""
-    policy = '''
+    policy = """
     forbid (principal, action == Action::"http", resource)
     when { request.hostname == "DEEPSEEK.COM" };
-    '''
+    """
 
     evaluator = CedarEvaluator.from_text(policy)
 
@@ -214,10 +214,10 @@ def test_evaluate_case_insensitive():
 
 def test_evaluate_startswith_operator():
     """Test startswith operator."""
-    policy = '''
+    policy = """
     forbid (principal, action == Action::"http", resource)
     when { request.path startswith "/api/v1" };
-    '''
+    """
 
     evaluator = CedarEvaluator.from_text(policy)
 
@@ -230,10 +230,10 @@ def test_evaluate_startswith_operator():
 
 def test_evaluate_endswith_operator():
     """Test endswith operator."""
-    policy = '''
+    policy = """
     forbid (principal, action == Action::"http", resource)
     when { request.path endswith ".exe" };
-    '''
+    """
 
     evaluator = CedarEvaluator.from_text(policy)
 
@@ -245,6 +245,7 @@ def test_evaluate_endswith_operator():
 
 
 # StandaloneInterceptor Tests
+
 
 def test_interceptor_initialization():
     """Test StandaloneInterceptor initialization."""
@@ -318,9 +319,7 @@ def test_interceptor_evaluate_and_enforce_no_policy():
     """Test evaluation without policy allows all requests."""
     interceptor = StandaloneInterceptor(enforcement="block")
 
-    should_allow, reason = interceptor._evaluate_and_enforce(
-        "GET", "https://any.com/api"
-    )
+    should_allow, reason = interceptor._evaluate_and_enforce("GET", "https://any.com/api")
 
     assert should_allow is True
     assert "no policy" in reason.lower()
@@ -328,30 +327,23 @@ def test_interceptor_evaluate_and_enforce_no_policy():
 
 def test_interceptor_evaluate_and_enforce_with_policy():
     """Test evaluation with policy."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.cedar', delete=False) as f:
-        f.write('''
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".cedar", delete=False) as f:
+        f.write("""
         forbid (principal, action == Action::"http", resource)
         when { request.hostname == "blocked.com" };
-        ''')
+        """)
         policy_file = f.name
 
     try:
-        interceptor = StandaloneInterceptor(
-            policy_file=policy_file,
-            enforcement="block"
-        )
+        interceptor = StandaloneInterceptor(policy_file=policy_file, enforcement="block")
 
         # Should block blocked.com
-        should_allow, reason = interceptor._evaluate_and_enforce(
-            "GET", "https://blocked.com/api"
-        )
+        should_allow, reason = interceptor._evaluate_and_enforce("GET", "https://blocked.com/api")
         assert should_allow is False
         assert "blocked.com" in reason.lower() or "forbidden" in reason.lower()
 
         # Should allow others
-        should_allow, reason = interceptor._evaluate_and_enforce(
-            "GET", "https://allowed.com/api"
-        )
+        should_allow, reason = interceptor._evaluate_and_enforce("GET", "https://allowed.com/api")
         assert should_allow is True
 
     finally:
@@ -360,14 +352,14 @@ def test_interceptor_evaluate_and_enforce_with_policy():
 
 def test_interceptor_block_mode_raises():
     """Test that block mode raises RequestBlockedError."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.cedar', delete=False) as f:
-        f.write('''
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".cedar", delete=False) as f:
+        f.write("""
         forbid (principal, action == Action::"http", resource)
         when { request.hostname == "blocked.com" };
-        ''')
+        """)
         policy_file = f.name
 
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
         log_file = f.name
 
     try:
@@ -388,7 +380,7 @@ def test_interceptor_block_mode_raises():
             interceptor._intercept_sync_request(mock_send, request)
 
         # Check log file
-        with open(log_file, 'r') as f:
+        with open(log_file) as f:
             events = [json.loads(line) for line in f]
             assert len(events) == 1
             assert events[0]["enforcement_action"] == "blocked"
@@ -401,14 +393,14 @@ def test_interceptor_block_mode_raises():
 
 def test_interceptor_log_mode_allows_blocked():
     """Test that log mode allows requests even when blocked by policy."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.cedar', delete=False) as f:
-        f.write('''
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".cedar", delete=False) as f:
+        f.write("""
         forbid (principal, action == Action::"http", resource)
         when { request.hostname == "blocked.com" };
-        ''')
+        """)
         policy_file = f.name
 
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
         log_file = f.name
 
     try:
@@ -430,7 +422,7 @@ def test_interceptor_log_mode_allows_blocked():
         assert response.status_code == 200
 
         # Check log file
-        with open(log_file, 'r') as f:
+        with open(log_file) as f:
             events = [json.loads(line) for line in f]
             assert len(events) == 1
             assert events[0]["policy_decision"] == "deny"
@@ -443,11 +435,11 @@ def test_interceptor_log_mode_allows_blocked():
 
 def test_interceptor_warn_mode_prints_warning(capsys):
     """Test that warn mode prints warnings but allows requests."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.cedar', delete=False) as f:
-        f.write('''
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".cedar", delete=False) as f:
+        f.write("""
         forbid (principal, action == Action::"http", resource)
         when { request.hostname == "blocked.com" };
-        ''')
+        """)
         policy_file = f.name
 
     try:
@@ -469,7 +461,9 @@ def test_interceptor_warn_mode_prints_warning(capsys):
 
         # Check that warning was printed
         captured = capsys.readouterr()
-        assert "Policy violation" in captured.err or "WARNING" in captured.err or "⚠️" in captured.err
+        assert (
+            "Policy violation" in captured.err or "WARNING" in captured.err or "⚠️" in captured.err
+        )
 
     finally:
         Path(policy_file).unlink(missing_ok=True)
@@ -477,14 +471,14 @@ def test_interceptor_warn_mode_prints_warning(capsys):
 
 def test_interceptor_exclude_patterns():
     """Test that exclude patterns skip interception."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.cedar', delete=False) as f:
-        f.write('''
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".cedar", delete=False) as f:
+        f.write("""
         forbid (principal, action == Action::"http", resource)
         when { request.hostname contains "." };
-        ''')
+        """)
         policy_file = f.name
 
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
         log_file = f.name
 
     try:
@@ -507,7 +501,7 @@ def test_interceptor_exclude_patterns():
         assert response.status_code == 200
 
         # Log file should be empty (excluded requests not logged)
-        with open(log_file, 'r') as f:
+        with open(log_file) as f:
             lines = f.readlines()
             assert len(lines) == 0
 
@@ -518,7 +512,7 @@ def test_interceptor_exclude_patterns():
 
 def test_interceptor_jsonl_logging():
     """Test JSONL event logging format."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
         log_file = f.name
 
     try:
@@ -540,7 +534,7 @@ def test_interceptor_jsonl_logging():
         interceptor._intercept_sync_request(mock_send2, request2)
 
         # Verify JSONL format
-        with open(log_file, 'r') as f:
+        with open(log_file) as f:
             lines = f.readlines()
             assert len(lines) == 2
 
@@ -566,8 +560,10 @@ def test_interceptor_jsonl_logging():
 
 def test_interceptor_get_stats():
     """Test get_stats method."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.cedar', delete=False) as f:
-        f.write('forbid (principal, action == Action::"http", resource) when { request.hostname == "test.com" };')
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".cedar", delete=False) as f:
+        f.write(
+            'forbid (principal, action == Action::"http", resource) when { request.hostname == "test.com" };'
+        )
         policy_file = f.name
 
     try:
@@ -599,7 +595,7 @@ def test_interceptor_repr():
 
 def test_interceptor_async_request_sync():
     """Test that async interceptor logic works (tested synchronously)."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
         log_file = f.name
 
     try:
@@ -622,11 +618,11 @@ def test_interceptor_async_request_sync():
 
 def test_interceptor_async_block_mode_sync():
     """Test async block mode logic (tested synchronously)."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.cedar', delete=False) as f:
-        f.write('''
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".cedar", delete=False) as f:
+        f.write("""
         forbid (principal, action == Action::"http", resource)
         when { request.hostname == "blocked.com" };
-        ''')
+        """)
         policy_file = f.name
 
     try:
@@ -636,9 +632,7 @@ def test_interceptor_async_block_mode_sync():
         )
 
         # Test the evaluation logic
-        should_allow, reason = interceptor._evaluate_and_enforce(
-            "GET", "https://blocked.com/api"
-        )
+        should_allow, reason = interceptor._evaluate_and_enforce("GET", "https://blocked.com/api")
 
         assert should_allow is False
         assert "blocked" in reason.lower() or "forbidden" in reason.lower()
@@ -649,11 +643,11 @@ def test_interceptor_async_block_mode_sync():
 
 def test_cedar_evaluator_from_file():
     """Test loading Cedar policy from file."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.cedar', delete=False) as f:
-        f.write('''
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".cedar", delete=False) as f:
+        f.write("""
         forbid (principal, action == Action::"http", resource)
         when { request.hostname == "test.com" };
-        ''')
+        """)
         policy_file = f.name
 
     try:
@@ -703,7 +697,7 @@ def test_interceptor_log_file_creation():
 
 def test_interceptor_error_logging():
     """Test that errors during request are logged."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
         log_file = f.name
 
     try:
@@ -723,7 +717,7 @@ def test_interceptor_error_logging():
             interceptor._intercept_sync_request(mock_send_error, request)
 
         # Check that error was logged
-        with open(log_file, 'r') as f:
+        with open(log_file) as f:
             events = [json.loads(line) for line in f]
             assert len(events) == 1
             assert events[0]["enforcement_action"] == "error"

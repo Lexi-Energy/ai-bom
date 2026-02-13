@@ -1,14 +1,15 @@
 """Tests for LangChain integration."""
 
-import pytest
-from unittest.mock import Mock
 from uuid import uuid4
+
+import pytest
 
 from trusera_sdk import EventType
 
 try:
+    from langchain_core.outputs import Generation, LLMResult
+
     from trusera_sdk.integrations.langchain import TruseraCallbackHandler
-    from langchain_core.outputs import LLMResult, Generation
 
     LANGCHAIN_AVAILABLE = True
 except ImportError:

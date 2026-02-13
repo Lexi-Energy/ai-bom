@@ -1,10 +1,8 @@
 """Tests for TruseraClient."""
 
-import pytest
 import time
-from unittest.mock import Mock, call
 
-from trusera_sdk import TruseraClient, Event, EventType
+from trusera_sdk import Event, EventType, TruseraClient
 
 
 def test_client_initialization(mock_httpx_client):
@@ -115,21 +113,33 @@ def test_flush_events(trusera_client, mock_httpx_client):
     assert trusera_client._queue.qsize() == 0
 
 
-def test_flush_respects_batch_size(trusera_client, mock_httpx_client):
+def test_flush_respects_batch_size(mock_httpx_client):
     """Test that flush respects batch_size."""
-    # Track more events than batch_size
-    for i in range(10):
-        event = Event(
-            type=EventType.TOOL_CALL,
-            name=f"tool_{i}",
-        )
-        trusera_client.track(event)
+    # Create a client with reasonable flush_interval but high batch_size
+    # to prevent auto-flush during tracking
+    client = TruseraClient(
+        api_key="tsk_test_key",
+        flush_interval=10,  # Long enough to prevent background flush during test
+        batch_size=5,
+    )
+    client.set_agent_id("agent_test_123")
 
-    # Flush (batch_size is 5)
-    trusera_client.flush()
+    try:
+        # Add 8 events directly to queue to bypass auto-flush logic in track()
+        for i in range(8):
+            event = Event(
+                type=EventType.TOOL_CALL,
+                name=f"tool_{i}",
+            )
+            client._queue.put(event)  # Use put() directly to bypass auto-flush
 
-    # Should have sent 5 events, 5 remaining
-    assert trusera_client._queue.qsize() == 5
+        # Flush with batch_size=5
+        client.flush()
+
+        # Should have sent 5 events, 3 remaining
+        assert client._queue.qsize() == 3
+    finally:
+        client.close()
 
 
 def test_auto_flush_on_batch_size(trusera_client, mock_httpx_client):

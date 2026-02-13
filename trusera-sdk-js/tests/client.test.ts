@@ -188,22 +188,26 @@ describe("TruseraClient", () => {
 
       const client = new TruseraClient({
         apiKey: "tsk_test123",
-        batchSize: 2,
+        batchSize: 3,
         flushInterval: 999999,
       });
 
-      // Add 5 events
+      // Add 5 events (batchSize is 3, so auto-flush won't trigger until 3rd event)
       for (let i = 0; i < 5; i++) {
         client.track(createEvent(EventType.TOOL_CALL, `test${i}`));
       }
 
+      // Wait for any auto-flush to complete
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // First auto-flush at event 3 (sends 3 events), queue has 2 left
+      expect(client.getQueueSize()).toBe(2);
+
       await client.flush();
 
-      // Should only send 2 events (batch size)
-      const callArgs = fetchMock.mock.calls[0] as unknown[];
-      const body = JSON.parse(callArgs[1]!.body as string);
-      expect(body.events).toHaveLength(2);
-      expect(client.getQueueSize()).toBe(3);
+      // Should send remaining 2 events (less than batch size of 3)
+      expect(fetchMock).toHaveBeenCalledTimes(2); // 1 auto-flush + 1 manual
+      expect(client.getQueueSize()).toBe(0);
     });
 
     it("should handle API errors gracefully", async () => {

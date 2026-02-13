@@ -1,11 +1,13 @@
 """Shared fixtures for tests."""
 
-import pytest
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
+
 import httpx
+import pytest
 
 try:
     from pytest_httpx import HTTPXMock
+
     HTTPX_MOCK_AVAILABLE = True
 except ImportError:
     HTTPX_MOCK_AVAILABLE = False
@@ -73,11 +75,8 @@ def httpx_mock():
                 self.responses = []
 
             def add_response(self, url=None, status_code=200, text="", **kwargs):
-                self.responses.append({
-                    "url": url,
-                    "status_code": status_code,
-                    "text": text,
-                    **kwargs
-                })
+                self.responses.append(
+                    {"url": url, "status_code": status_code, "text": text, **kwargs}
+                )
 
         yield SimpleMock()
