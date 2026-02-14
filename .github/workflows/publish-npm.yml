@@ -1,0 +1,31 @@
+name: Publish n8n Node to npm
+
+on:
+  push:
+    tags:
+      - 'n8n-v*'
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: cd n8n-node && npm ci
+
+      - name: Build
+        run: cd n8n-node && npm run build
+
+      - name: Publish to npm
+        run: cd n8n-node && npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

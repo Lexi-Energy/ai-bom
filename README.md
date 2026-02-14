@@ -1,6 +1,6 @@
 <div align="center">
-  <img src="assets/logo.png" alt="AI-BOM Logo" width="80" />
-  <img src="assets/maskot.png" alt="Trusera Mascot" width="80" style="margin-left: 12px" />
+  <img src="https://raw.githubusercontent.com/Trusera/ai-bom/main/assets/logo.png" alt="AI-BOM Logo" width="80" />
+  <img src="https://raw.githubusercontent.com/Trusera/ai-bom/main/assets/maskot.png" alt="Trusera Mascot" width="80" style="margin-left: 12px" />
   <h1>AI-BOM</h1>
   <p><strong>Discover every AI agent, model, and API hiding in your infrastructure</strong></p>
 
@@ -37,7 +37,7 @@
   </p>
 
   <br />
-  <img src="assets/n8n-demo.gif" alt="AI-BOM n8n Community Node Demo" width="720" />
+  <img src="https://raw.githubusercontent.com/Trusera/ai-bom/main/assets/n8n-demo.gif" alt="AI-BOM n8n Community Node Demo" width="720" />
   <br />
   <sub>Scan all your n8n AI workflows for security risks — directly inside n8n</sub>
 </div>

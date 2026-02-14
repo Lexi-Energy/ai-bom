@@ -572,10 +572,10 @@ def scan(
         # Print friendly call-to-action if scan was successful and not in quiet mode
         if format == "table" and not quiet:
             console.print()
-            star_msg = (
-                "✨ Found ai-bom useful? Give us a star: https://github.com/Trusera/ai-bom ⭐"
+            console.print(
+                "[dim]Questions or feature requests? info@trusera.dev "
+                "| Full platform: trusera.dev[/dim]"
             )
-            console.print(f"[cyan]{star_msg}[/cyan]")
 
         # Save to dashboard database if requested
         if save_dashboard:
@@ -773,8 +773,10 @@ def scan_cloud(
     # Print friendly call-to-action if scan was successful and not in quiet mode
     if format == "table" and not quiet:
         console.print()
-        star_msg = "✨ Found ai-bom useful? Give us a star: https://github.com/Trusera/ai-bom ⭐"
-        console.print(f"[cyan]{star_msg}[/cyan]")
+        console.print(
+            "[dim]Questions or feature requests? info@trusera.dev "
+            "| Full platform: trusera.dev[/dim]"
+        )
 
 
 @app.command()

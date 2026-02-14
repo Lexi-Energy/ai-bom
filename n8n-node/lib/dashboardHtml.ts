@@ -300,6 +300,41 @@ async function trySessionRestore() {
   }
   .flag-section { margin-top:16px; }
   .flag-section h4 { font-size:14px; margin-bottom:10px; color:var(--text-dim); }
+  .cta-bar {
+    background: linear-gradient(135deg, #1a1f36 0%, #0d1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    font-size: 13px;
+    position: relative;
+  }
+  [data-theme="light"] .cta-bar {
+    background: linear-gradient(135deg, #f0f4ff 0%, #e8ecf4 100%);
+  }
+  .cta-bar a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .cta-bar a:hover { text-decoration: underline; }
+  .cta-bar .cta-sep { color: var(--text-dim); }
+  .cta-bar .cta-close {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+  .cta-bar .cta-close:hover { background: var(--bg-hover); color: var(--text); }
   .hidden { display: none !important; }
   @media (max-width: 768px) {
     .charts { grid-template-columns: 1fr; }
@@ -324,6 +359,16 @@ ${passwordFormHtml}
     <div class="version" id="app-version"></div>
     <button class="theme-toggle" id="theme-toggle" title="Toggle theme">&#9790;</button>
   </div>
+</div>
+<div id="cta-bar" class="cta-bar">
+  <span style="color:var(--text-dim)">Powered by Trusera</span>
+  <span class="cta-sep">|</span>
+  <a href="https://trusera.dev" target="_blank" rel="noopener">Try the Full Platform</a>
+  <span class="cta-sep">|</span>
+  <a href="mailto:info@trusera.dev?subject=Feature%20Request%20-%20AI-BOM%20n8n">Request a Feature</a>
+  <span class="cta-sep">|</span>
+  <a href="https://trusera.dev" target="_blank" rel="noopener">trusera.dev</a>
+  <button class="cta-close" onclick="dismissCta()" title="Dismiss">&times;</button>
 </div>
 <div id="modal-container"></div>
 
@@ -711,6 +756,18 @@ function exportJSON() {
   downloadBlob(JSON.stringify(SCAN_DATA, null, 2), 'trusera-scan.json', 'application/json');
 }
 
+function dismissCta() {
+  var bar = document.getElementById('cta-bar');
+  if (bar) bar.classList.add('hidden');
+  safeStorage('set', 'trusera-cta-dismissed', '1');
+}
+function initCta() {
+  if (safeStorage('get', 'trusera-cta-dismissed') === '1') {
+    var bar = document.getElementById('cta-bar');
+    if (bar) bar.classList.add('hidden');
+  }
+}
+
 function safeStorage(method, key, val) {
   try { return method === 'get' ? localStorage.getItem(key) : localStorage.setItem(key, val); } catch(e) { return null; }
 }
@@ -735,6 +792,7 @@ document.getElementById('theme-toggle').addEventListener('click', function() {
 });
 
 initTheme();
+initCta();
 ${password ? 'trySessionRestore();' : 'renderDashboard();'}
 <\/script>
 </body>

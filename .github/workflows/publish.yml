@@ -5,6 +5,7 @@ on:
     tags:
       - "v*"
       - "!vscode-*"
+      - "!n8n-*"
 
 permissions:
   id-token: write
