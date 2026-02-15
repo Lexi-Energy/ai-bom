@@ -63,7 +63,7 @@ dev = [
 docs = [
     "mkdocs>=1.5,<2.0",
     "mkdocs-material>=9.0,<10.0",
-    "mkdocstrings[python]>=0.24,<1.0",
+    "mkdocstrings[python]>=0.24,<2.0",
 ]
 server = [
     "fastapi>=0.100.0,<1.0",
