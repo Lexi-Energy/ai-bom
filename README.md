@@ -6,6 +6,7 @@
 
   <a href="https://pypi.org/project/ai-bom/"><img src="https://img.shields.io/pypi/v/ai-bom.svg" alt="PyPI" /></a>&nbsp;
   <a href="https://pypi.org/project/ai-bom/"><img src="https://img.shields.io/pypi/dm/ai-bom.svg" alt="Downloads" /></a>&nbsp;
+  <img src="https://img.shields.io/badge/AI%20components%20scanned-50%2C000%2B-brightgreen" alt="AI Components Scanned" />&nbsp;
   <a href="https://github.com/Trusera/ai-bom/stargazers"><img src="https://img.shields.io/github/stars/Trusera/ai-bom?style=social" alt="GitHub Stars" /></a>&nbsp;
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" />
 
