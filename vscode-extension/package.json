@@ -5,6 +5,10 @@
   "version": "0.1.0",
   "publisher": "trusera",
   "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#0f172a",
+    "theme": "dark"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
