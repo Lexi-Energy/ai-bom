@@ -41,13 +41,32 @@ console = Console()
 logger = logging.getLogger("ai_bom")
 
 
-def _send_telemetry(result: ScanResult, scan_type: str) -> None:
-    """Send anonymous telemetry data if opted in via AI_BOM_TELEMETRY=true.
+def _is_telemetry_enabled(flag: Optional[bool] = None) -> bool:
+    """Check if telemetry is enabled.
 
-    Non-blocking: runs in a background thread. Fails silently on any error.
-    No PII is collected — only aggregate scan statistics.
+    Priority: CLI flag > environment variable > default (off).
     """
-    if os.environ.get("AI_BOM_TELEMETRY", "").lower() != "true":
+    if flag is not None:
+        return flag
+    return os.environ.get("AI_BOM_TELEMETRY", "").lower() == "true"
+
+
+def _send_telemetry(result: ScanResult, scan_type: str, enabled: Optional[bool] = None) -> None:
+    """Send anonymous telemetry data if opted in.
+
+    Opt-in via: --telemetry flag, or AI_BOM_TELEMETRY=true env var.
+    Non-blocking: runs in a background thread. Fails silently on any error.
+
+    Data collected (NO PII):
+    - scan_type: file, dir, or repo
+    - component_counts: aggregate counts by component type
+    - severity_counts: aggregate counts by severity level
+    - scanner_version: ai-bom version string
+    - timestamp: scan timestamp (ISO 8601)
+
+    See https://trusera.dev/privacy for our privacy policy.
+    """
+    if not _is_telemetry_enabled(enabled):
         return
 
     def _post() -> None:
@@ -357,6 +376,11 @@ def scan(
         "-j",
         help="Output as JSON (shorthand for --format json)",
     ),
+    telemetry: Optional[bool] = typer.Option(
+        None,
+        "--telemetry/--no-telemetry",
+        help="Enable/disable anonymous telemetry (overrides AI_BOM_TELEMETRY env var)",
+    ),
 ) -> None:
     """Scan a directory or repository for AI/LLM components."""
     # --json / -j overrides --format
@@ -614,7 +638,14 @@ def scan(
             _scan_type = "file"
         else:
             _scan_type = "dir"
-        _send_telemetry(result, _scan_type)
+        _send_telemetry(result, _scan_type, enabled=telemetry)
+
+        # Show telemetry notice on first run (only for interactive table output)
+        if _is_telemetry_enabled(telemetry) and format == "table" and not quiet:
+            console.print(
+                "[dim]Telemetry: anonymous scan stats sent to improve ai-bom. "
+                "Disable with --no-telemetry or AI_BOM_TELEMETRY=false[/dim]"
+            )
 
         # --- Policy enforcement ---
         exit_code = 0
@@ -842,6 +873,9 @@ def demo() -> None:
         workers=0,
         cache=False,
         max_file_size=10,
+        validate_schema=False,
+        json_output=False,
+        telemetry=None,
     )
 
 
@@ -1016,6 +1050,10 @@ def watch(
                     policy=None,
                     workers=0,
                     cache=False,
+                    max_file_size=10,
+                    validate_schema=False,
+                    json_output=False,
+                    telemetry=None,
                 )
 
     observer = Observer()
