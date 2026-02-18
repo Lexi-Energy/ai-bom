@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { TruseraClient } from "../src/client.js";
 import { TruseraLangChainHandler } from "../src/integrations/langchain.js";
+import { CedarEvaluator } from "../src/cedar.js";
 import { EventType } from "../src/events.js";
 
 let client: TruseraClient;
@@ -201,6 +202,121 @@ describe("TruseraLangChainHandler", () => {
       handler.handleChainError(new Error("test"), "nonexistent");
 
       expect(client.getQueueSize()).toBe(0);
+    });
+  });
+
+  describe("Cedar policy enforcement", () => {
+    const denyToolPolicy = `
+      forbid (principal, action == Action::"*", resource)
+      when { resource.hostname == "langchain" };
+    `;
+
+    it("should throw in block mode when policy denies tool call", () => {
+      const evaluator = new CedarEvaluator(denyToolPolicy);
+      const enforced = new TruseraLangChainHandler(client, {
+        enforcement: "block",
+        cedarEvaluator: evaluator,
+      });
+
+      expect(() => {
+        enforced.handleToolStart({ name: "dangerous_tool" }, "input", "run-1");
+      }).toThrow("[Trusera] Policy violation");
+
+      // Violation event should be tracked
+      expect(client.getQueueSize()).toBe(1);
+    });
+
+    it("should throw in block mode when policy denies LLM call", () => {
+      const evaluator = new CedarEvaluator(denyToolPolicy);
+      const enforced = new TruseraLangChainHandler(client, {
+        enforcement: "block",
+        cedarEvaluator: evaluator,
+      });
+
+      expect(() => {
+        enforced.handleLLMStart({ name: "gpt-4" }, ["test"], "run-1");
+      }).toThrow("[Trusera] Policy violation");
+
+      expect(client.getQueueSize()).toBe(1);
+    });
+
+    it("should warn but allow in warn mode", () => {
+      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      const evaluator = new CedarEvaluator(denyToolPolicy);
+      const enforced = new TruseraLangChainHandler(client, {
+        enforcement: "warn",
+        cedarEvaluator: evaluator,
+      });
+
+      // Should NOT throw
+      enforced.handleToolStart({ name: "tool" }, "input", "run-1");
+
+      // Violation event + tool start event
+      expect(client.getQueueSize()).toBe(2);
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[Trusera] Policy violation")
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it("should silently track in log mode", () => {
+      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      const evaluator = new CedarEvaluator(denyToolPolicy);
+      const enforced = new TruseraLangChainHandler(client, {
+        enforcement: "log",
+        cedarEvaluator: evaluator,
+      });
+
+      // Should NOT throw
+      enforced.handleToolStart({ name: "tool" }, "input", "run-1");
+
+      // Violation event + tool start event
+      expect(client.getQueueSize()).toBe(2);
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it("should work as passive tracker without options (backward compat)", () => {
+      const passive = new TruseraLangChainHandler(client);
+
+      // No enforcement, should track normally without throwing
+      passive.handleToolStart({ name: "any_tool" }, "input", "run-1");
+      passive.handleLLMStart({ name: "gpt-4" }, ["test"], "run-2");
+
+      expect(client.getQueueSize()).toBe(2);
+      expect(passive.getPendingEventCount()).toBe(2);
+    });
+
+    it("should not enforce if evaluator is not provided", () => {
+      const noEvaluator = new TruseraLangChainHandler(client, {
+        enforcement: "block",
+        // cedarEvaluator intentionally omitted
+      });
+
+      // Should not throw even with "block" enforcement
+      noEvaluator.handleToolStart({ name: "tool" }, "input", "run-1");
+      expect(client.getQueueSize()).toBe(1);
+    });
+
+    it("should allow when policy permits", () => {
+      const allowPolicy = `
+        forbid (principal, action == Action::"*", resource)
+        when { resource.hostname == "forbidden-host" };
+      `;
+      const evaluator = new CedarEvaluator(allowPolicy);
+      const enforced = new TruseraLangChainHandler(client, {
+        enforcement: "block",
+        cedarEvaluator: evaluator,
+      });
+
+      // langchain hostname doesn't match "forbidden-host", so should pass
+      enforced.handleToolStart({ name: "tool" }, "input", "run-1");
+      expect(client.getQueueSize()).toBe(1);
+      expect(enforced.getPendingEventCount()).toBe(1);
     });
   });
 });
