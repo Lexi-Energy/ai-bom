@@ -13,6 +13,7 @@ except ImportError:
     HTTPX_MOCK_AVAILABLE = False
 
 from trusera_sdk import TruseraClient
+from trusera_sdk.cedar import EvaluationResult, PolicyDecision
 
 
 @pytest.fixture
@@ -80,3 +81,38 @@ def httpx_mock():
                 )
 
         yield SimpleMock()
+
+
+# ---------------------------------------------------------------------------
+# Interceptor-related fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def allow_all_cache():
+    """A mock PolicyCache that allows everything."""
+    cache = Mock()
+    cache.evaluate_request.return_value = EvaluationResult(
+        decision=PolicyDecision.ALLOW,
+        reason="Mock allow-all",
+    )
+    cache.evaluate_action.return_value = EvaluationResult(
+        decision=PolicyDecision.ALLOW,
+        reason="Mock allow-all",
+    )
+    return cache
+
+
+@pytest.fixture
+def deny_all_cache():
+    """A mock PolicyCache that denies everything."""
+    cache = Mock()
+    cache.evaluate_request.return_value = EvaluationResult(
+        decision=PolicyDecision.DENY,
+        reason="Mock deny-all",
+    )
+    cache.evaluate_action.return_value = EvaluationResult(
+        decision=PolicyDecision.DENY,
+        reason="Mock deny-all",
+    )
+    return cache

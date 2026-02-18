@@ -11,6 +11,8 @@ def test_event_type_enum():
     assert EventType.API_CALL.value == "api_call"
     assert EventType.FILE_WRITE.value == "file_write"
     assert EventType.DECISION.value == "decision"
+    assert EventType.POLICY_VIOLATION.value == "policy_violation"
+    assert EventType.INTERCEPTION.value == "interception"
 
 
 def test_event_creation():
