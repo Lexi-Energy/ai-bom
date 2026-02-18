@@ -24,7 +24,7 @@
 <br />
 
 <p align="center">
-  <img src="assets/demo.gif" alt="ai-bom CLI demo" width="800"/>
+  <img src="https://raw.githubusercontent.com/Trusera/ai-bom/main/assets/demo.gif" alt="ai-bom CLI demo" width="800"/>
 </p>
 
 ---
