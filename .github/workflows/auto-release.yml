@@ -89,7 +89,7 @@ jobs:
             [ -n "$CHANGED" ] && echo "true" || echo "false"
           }
 
-          AI=$(has_changes 'v[0-9]*' 'src/' 'pyproject.toml')
+          AI=$(has_changes 'v[0-9]*' 'src/' 'pyproject.toml' 'README.md')
           SDK=$(has_changes 'sdk-v*' 'trusera-agent-sdk/')
           JS=$(has_changes 'js-v*' 'trusera-sdk-js/')
           GO=$(has_changes 'trusera-sdk-go/v*' 'trusera-sdk-go/')
@@ -117,7 +117,7 @@ jobs:
         id: bump
         run: |
           eval "$BUMP_SCRIPT"
-          bump_version 'v[0-9]*' 'v' src/ pyproject.toml
+          bump_version 'v[0-9]*' 'v' src/ pyproject.toml README.md
 
       - name: Update, commit, tag, push
         if: steps.bump.outputs.skip != 'true'
