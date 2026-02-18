@@ -20,3 +20,4 @@ export { EventType, createEvent, isValidEvent } from "./events.js";
 export type { Event } from "./events.js";
 
 export { TruseraLangChainHandler } from "./integrations/langchain.js";
+export type { LangChainHandlerOptions } from "./integrations/langchain.js";
