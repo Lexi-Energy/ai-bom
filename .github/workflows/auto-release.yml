@@ -4,16 +4,17 @@ on:
   push:
     branches:
       - main
-    # Don't trigger on tag pushes to avoid infinite loops
     tags-ignore:
       - "**"
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   bump-and-release:
     runs-on: ubuntu-latest
+    environment: pypi
 
     # Skip if this is a version bump commit (prevents re-triggering)
     if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
@@ -35,11 +36,9 @@ jobs:
           if [ -z "$LATEST_TAG" ]; then
             echo "No existing v* tag found. Using v0.0.0 as base."
             LATEST_TAG="v0.0.0"
-            # Get all commits if no tag exists
             COMMITS=$(git log --pretty=format:"%s" HEAD)
           else
             echo "Latest tag: $LATEST_TAG"
-            # Get commits since the last tag
             COMMITS=$(git log --pretty=format:"%s" "${LATEST_TAG}..HEAD")
           fi
 
@@ -53,39 +52,33 @@ jobs:
           echo "$COMMITS"
           echo "---"
 
-          # Parse current version from tag
           VERSION="${LATEST_TAG#v}"
           MAJOR=$(echo "$VERSION" | cut -d. -f1)
           MINOR=$(echo "$VERSION" | cut -d. -f2)
           PATCH=$(echo "$VERSION" | cut -d. -f3)
 
-          # Analyze commits for bump type
           HAS_BREAKING=false
           HAS_FEAT=false
           HAS_FIX=false
 
           while IFS= read -r msg; do
-            # Check for BREAKING CHANGE in commit body/footer marker in subject
             if echo "$msg" | grep -qi "BREAKING CHANGE"; then
               HAS_BREAKING=true
             fi
-            # Check for type! (e.g. feat!: or fix!:)
             if echo "$msg" | grep -qE "^[a-z]+(\(.+\))?!:"; then
               HAS_BREAKING=true
             fi
-            # Check for feat commits (skip ci/deps/build scopes — those don't warrant a release)
+            # Skip ci/deps/build scopes — those don't warrant a release
             if echo "$msg" | grep -qE "^feat(\(.+\))?[!]?:" && ! echo "$msg" | grep -qE "^feat\((ci|deps|build|chore)\)"; then
               HAS_FEAT=true
             fi
-            # Check for fix commits
-            if echo "$msg" | grep -qE "^fix(\(.+\))?[!]?:"; then
+            if echo "$msg" | grep -qE "^fix(\(.+\))?[!]?:" && ! echo "$msg" | grep -qE "^fix\((ci|deps|build|chore)\)"; then
               HAS_FIX=true
             fi
           done <<< "$COMMITS"
 
           echo "Breaking: $HAS_BREAKING | Feat: $HAS_FEAT | Fix: $HAS_FIX"
 
-          # Determine bump type
           if [ "$HAS_BREAKING" = true ]; then
             BUMP="major"
             MAJOR=$((MAJOR + 1))
@@ -119,11 +112,7 @@ jobs:
           INIT_FILE="src/ai_bom/__init__.py"
 
           echo "Updating $INIT_FILE to version $NEW_VERSION"
-
-          # Replace the __version__ line
           sed -i "s/^__version__ = \".*\"/__version__ = \"${NEW_VERSION}\"/" "$INIT_FILE"
-
-          # Verify the change
           grep "__version__" "$INIT_FILE"
 
       - name: Commit, tag, and push
@@ -143,3 +132,20 @@ jobs:
           git push origin "v${NEW_VERSION}"
 
           echo "Released v${NEW_VERSION}"
+
+      - name: Set up Python
+        if: steps.bump.outputs.skip != 'true'
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Build and publish to PyPI
+        if: steps.bump.outputs.skip != 'true'
+        run: |
+          pip install build twine
+          python -m build
+          twine check dist/*
+
+      - name: Publish to PyPI
+        if: steps.bump.outputs.skip != 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
