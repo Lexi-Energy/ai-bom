@@ -15,7 +15,7 @@ authors = [
 keywords = [
     "ai", "bom", "security", "llm", "agents", "compliance",
     "n8n", "shadow-ai", "sbom", "ai-security", "devsecops",
-    "mcp", "ai-agent", "cybersecurity",
+    "mcp", "ai-agent", "cybersecurity", "red-teaming", "giskard",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
