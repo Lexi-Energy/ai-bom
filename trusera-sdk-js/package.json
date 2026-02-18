@@ -2,8 +2,22 @@
   "name": "trusera-sdk",
   "version": "0.1.0",
   "description": "TypeScript SDK for monitoring AI agents with Trusera - intercept HTTP, evaluate policies",
-  "main": "dist/index.js",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -25,7 +39,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint src/",
@@ -56,6 +70,7 @@
     "@types/node": "^20.0.0",
     "axios": "^1.13.5",
     "eslint": "^8.0.0",
+    "tsup": "^8.5.1",
     "typescript": "^5.3.0",
     "undici": "^7.22.0",
     "vitest": "^1.0.0"
