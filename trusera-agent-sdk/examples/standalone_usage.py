@@ -10,7 +10,8 @@ connecting to the Trusera platform. Useful for:
 """
 
 import httpx
-from trusera_sdk import StandaloneInterceptor, RequestBlockedError
+
+from trusera_sdk import RequestBlockedError, StandaloneInterceptor
 
 
 def example_basic_usage():
@@ -122,10 +123,10 @@ def example_context_manager():
     with StandaloneInterceptor(
         enforcement="warn",
         log_file="context-events.jsonl",
-    ) as interceptor:
+    ):
         client = httpx.Client()
-        response = client.get("https://httpbin.org/get")
-        print(f"Request made: {response.status_code}")
+        resp = client.get("https://httpbin.org/get")
+        print(f"Request made: {resp.status_code}")
 
     # Interceptor is automatically uninstalled here
     print("Interceptor uninstalled automatically")
@@ -144,18 +145,18 @@ def example_exclude_patterns():
             r"localhost:\d+",   # Skip localhost
             r"127\.0\.0\.1",    # Skip loopback
         ],
-    ) as interceptor:
+    ) as iceptor:
         client = httpx.Client()
 
         # This will be intercepted
-        response = client.get("https://httpbin.org/get")
-        print(f"External API: intercepted and logged")
+        client.get("https://httpbin.org/get")
+        print("External API: intercepted and logged")
 
         # These would be skipped (if they existed)
         # client.get("https://api.trusera.dev/health")
         # client.get("http://localhost:8080/api")
 
-        stats = interceptor.get_stats()
+        stats = iceptor.get_stats()
         print(f"Events logged: {stats['events_logged']}")
 
 
@@ -178,7 +179,6 @@ def example_enforcement_modes():
         enforcement="log",
         log_file="log-mode.jsonl",
     ):
-        client = httpx.Client()
         # Would log but allow the request
         print("LOG mode: violations logged, requests allowed")
 
@@ -188,7 +188,6 @@ def example_enforcement_modes():
         policy_file="admin-policy.cedar",
         enforcement="warn",
     ):
-        client = httpx.Client()
         # Would print warning but allow the request
         print("WARN mode: warnings printed, requests allowed")
 
@@ -198,7 +197,6 @@ def example_enforcement_modes():
         policy_file="admin-policy.cedar",
         enforcement="block",
     ):
-        client = httpx.Client()
         print("BLOCK mode: violations raise RequestBlockedError")
 
 
