@@ -22,7 +22,7 @@ jobs:
       # Use the official AI-BOM GitHub Action (faster than pip install)
       - name: Run AI-BOM scan (AIBOM JSON)
         id: scan
-        uses: trusera/ai-bom@v1
+        uses: trusera/ai-bom@v3
         continue-on-error: true
         with:
           path: "."
