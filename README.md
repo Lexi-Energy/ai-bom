@@ -20,7 +20,7 @@
   <a href="#agent-sdks">SDKs</a>&ensp;&middot;&ensp;
   <a href="#n8n-community-node">n8n Node</a>&ensp;&middot;&ensp;
   <a href="#cicd-integration">CI/CD</a>&ensp;&middot;&ensp;
-  <a href="#comparison">Compare</a>&ensp;&middot;&ensp;
+  <a href="docs/comparison.md">Compare</a>&ensp;&middot;&ensp;
   <a href="#architecture">Docs</a>
 </div>
 
@@ -328,6 +328,7 @@ That's it. The node fetches all workflows, scans them, and serves an interactive
 - Optional password protection (AES-256-GCM encrypted, client-side decryption)
 
 ---
+> Looking for AI-BOM ecosystem comparisons? See [AI-BOM Tool Comparison](docs/comparison.md).
 
 ## Comparison
 
