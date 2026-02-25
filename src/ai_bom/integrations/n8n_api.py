@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import urllib.parse
 from typing import Any
 
 import requests
@@ -90,7 +91,7 @@ class N8nAPIClient:
         for _page in range(MAX_PAGES):
             path = "/api/v1/workflows"
             if cursor:
-                path += f"?cursor={cursor}"
+                path += f"?cursor={urllib.parse.quote(cursor, safe='')}"
 
             data = self._request("GET", path)
 
