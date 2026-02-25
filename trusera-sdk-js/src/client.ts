@@ -16,6 +16,8 @@ export interface TruseraClientOptions {
   flushInterval?: number;
   /** Max events per batch (default: 100) */
   batchSize?: number;
+  /** Maximum event queue size before oldest events are dropped (default: 10000) */
+  maxQueueSize?: number;
   /** Enable debug logging to console */
   debug?: boolean;
   /** Auto-register with fleet discovery on startup (default: false).
@@ -60,6 +62,7 @@ export class TruseraClient {
   private readonly apiKey: string;
   private readonly baseUrl: string;
   private readonly batchSize: number;
+  private readonly maxQueueSize: number;
   private readonly flushInterval: number;
   private readonly debug: boolean;
 
@@ -82,6 +85,7 @@ export class TruseraClient {
     this.baseUrl = options.baseUrl ?? "https://api.trusera.io";
     this.agentId = options.agentId;
     this.batchSize = options.batchSize ?? 100;
+    this.maxQueueSize = options.maxQueueSize ?? 10000;
     this.flushInterval = options.flushInterval ?? 5000;
     this.debug = options.debug ?? false;
 
@@ -142,7 +146,7 @@ export class TruseraClient {
         name,
         framework,
         metadata: {
-          sdk_version: "0.1.0",
+          sdk_version: SDK_VERSION,
           runtime: "node",
           node_version: process.version,
         },
@@ -177,11 +181,18 @@ export class TruseraClient {
       metadata: {
         ...event.metadata,
         agent_id: this.agentId,
-        sdk_version: "0.1.0",
+        sdk_version: SDK_VERSION,
       },
     };
 
     this.eventQueue.push(enrichedEvent);
+
+    // Drop oldest events if queue exceeds max size
+    while (this.eventQueue.length > this.maxQueueSize) {
+      this.eventQueue.shift();
+      this.log("Event queue overflow, dropping oldest event");
+    }
+
     this.log("Event tracked", { type: event.type, name: event.name, queueSize: this.eventQueue.length });
 
     // Auto-flush if batch size reached
@@ -264,7 +275,7 @@ export class TruseraClient {
     if (typeof process === "undefined") return {};
     return {
       pid: process.pid,
-      argv: process.argv?.slice(0, 10),
+      argv: process.argv?.slice(0, 2),
       node_version: process.version,
       platform: process.platform,
       arch: process.arch,
