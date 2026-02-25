@@ -18,11 +18,23 @@ export class AIBOMScanner {
   }
 
   /**
+   * Validate that pythonPath does not contain shell metacharacters.
+   * Prevents command injection via malicious Python path configuration.
+   * OWASP: A03:2021 - Injection
+   */
+  private validatePythonPath(pythonPath: string): void {
+    if (/[;&|`$(){}]/.test(pythonPath)) {
+      throw new Error('Invalid Python path: contains shell metacharacters');
+    }
+  }
+
+  /**
    * Check if ai-bom is installed
    */
   async isInstalled(): Promise<boolean> {
     try {
-      const result = await this.executeCommand(`${this.config.pythonPath} -m pip show ai-bom`);
+      this.validatePythonPath(this.config.pythonPath);
+      const result = await this.executeCommand(this.config.pythonPath, ['-m', 'pip', 'show', 'ai-bom']);
       return result.exitCode === 0;
     } catch (error) {
       return false;
@@ -34,9 +46,11 @@ export class AIBOMScanner {
    */
   async install(): Promise<boolean> {
     try {
+      this.validatePythonPath(this.config.pythonPath);
       this.outputChannel.appendLine('Installing ai-bom...');
       const result = await this.executeCommand(
-        `${this.config.pythonPath} -m pip install ai-bom`,
+        this.config.pythonPath,
+        ['-m', 'pip', 'install', 'ai-bom'],
         { timeout: 60000 }
       );
 
@@ -92,12 +106,12 @@ export class AIBOMScanner {
         args.push('--deep');
       }
 
-      const command = `${this.config.pythonPath} -m ai_bom.cli ${args.join(' ')}`;
-
-      this.outputChannel.appendLine(`Running: ${command}`);
+      this.validatePythonPath(this.config.pythonPath);
+      const execArgs = ['-m', 'ai_bom.cli', ...args];
+      this.outputChannel.appendLine(`Running: ${this.config.pythonPath} ${execArgs.join(' ')}`);
 
       // Execute scan
-      const result = await this.executeCommand(command, { timeout: 120000 });
+      const result = await this.executeCommand(this.config.pythonPath, execArgs, { timeout: 120000 });
 
       if (result.exitCode !== 0 && result.exitCode !== 1) {
         // Exit code 1 is used for policy failures, which is okay
@@ -210,15 +224,19 @@ export class AIBOMScanner {
   }
 
   /**
-   * Execute a shell command
+   * Execute a command safely using execFile (no shell injection).
+   * Uses execFile instead of exec to avoid shell interpretation of arguments.
+   * OWASP: A03:2021 - Injection
    */
   private executeCommand(
-    command: string,
+    executable: string,
+    args: string[],
     options?: { timeout?: number }
   ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
     return new Promise((resolve, reject) => {
-      child_process.exec(
-        command,
+      child_process.execFile(
+        executable,
+        args,
         {
           timeout: options?.timeout || 30000,
           maxBuffer: 10 * 1024 * 1024 // 10MB buffer
