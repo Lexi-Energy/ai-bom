@@ -61,7 +61,7 @@ def create_server_app() -> Any:
             without credentials.
             """
 
-            async def dispatch(self, request, call_next):  # type: ignore[override]
+            async def dispatch(self, request: Any, call_next: Any) -> Any:  # type: ignore[override]
                 if request.url.path == "/health":
                     return await call_next(request)
                 auth = request.headers.get("authorization", "")
@@ -119,7 +119,7 @@ def create_server_app() -> Any:
         try:
             scan_path.relative_to(scan_root)
         except ValueError:
-            raise HTTPException(status_code=403, detail="Access denied")
+            raise HTTPException(status_code=403, detail="Access denied") from None
 
         if not scan_path.exists():
             # Generic message — never echo the user-supplied path

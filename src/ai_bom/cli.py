@@ -158,11 +158,11 @@ def _clone_repo(url: str) -> Path:
     if parsed.scheme == "http" and parsed.hostname not in ("localhost", "127.0.0.1"):
         console.print("[yellow]Warning: Using insecure http:// URL. Consider using https://[/yellow]")
         logger.warning("Non-HTTPS git URL used: %s", parsed.scheme)
-    if parsed.scheme not in ("http", "https", "ssh", ""):
+    if parsed.scheme not in ("http", "https", "ssh", "") and not url.startswith("git@"):
         # Empty scheme handles git@host:repo style URLs
-        if not url.startswith("git@"):
-            console.print(f"[red]Unsupported URL scheme: {parsed.scheme}. Use https:// or git@[/red]")
-            raise typer.Exit(EXIT_ERROR) from None
+        msg = f"Unsupported URL scheme: {parsed.scheme}. Use https:// or git@"
+        console.print(f"[red]{msg}[/red]")
+        raise typer.Exit(EXIT_ERROR) from None
 
     try:
         tmp = Path(tempfile.mkdtemp(prefix="ai-bom-"))
