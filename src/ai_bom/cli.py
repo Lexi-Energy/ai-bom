@@ -156,7 +156,9 @@ def _clone_repo(url: str) -> Path:
         console.print("[red]file:// URLs are not allowed for security reasons[/red]")
         raise typer.Exit(EXIT_ERROR) from None
     if parsed.scheme == "http" and parsed.hostname not in ("localhost", "127.0.0.1"):
-        console.print("[yellow]Warning: Using insecure http:// URL. Consider using https://[/yellow]")
+        console.print(
+            "[yellow]Warning: Using insecure http:// URL. Consider using https://[/yellow]"
+        )
         logger.warning("Non-HTTPS git URL used: %s", parsed.scheme)
     if parsed.scheme not in ("http", "https", "ssh", "") and not url.startswith("git@"):
         # Empty scheme handles git@host:repo style URLs

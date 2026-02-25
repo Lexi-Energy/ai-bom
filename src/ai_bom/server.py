@@ -66,9 +66,7 @@ def create_server_app() -> Any:
                     return await call_next(request)
                 auth = request.headers.get("authorization", "")
                 if not auth.startswith("Bearer ") or auth[7:] != api_key:
-                    return StarletteJSONResponse(
-                        {"error": "Unauthorized"}, status_code=401
-                    )
+                    return StarletteJSONResponse({"error": "Unauthorized"}, status_code=401)
                 return await call_next(request)
 
         app.add_middleware(APIKeyMiddleware)

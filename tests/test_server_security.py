@@ -15,6 +15,7 @@ import pytest
 def app_factory():
     """Import factory inside fixture to allow env var patching."""
     from ai_bom.server import create_server_app
+
     return create_server_app
 
 
