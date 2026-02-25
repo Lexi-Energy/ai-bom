@@ -30,6 +30,26 @@ import * as path from "node:path";
 import { CedarEvaluator } from "./cedar.js";
 import type { PolicyDecision } from "./cedar.js";
 
+const MAX_PATTERN_LENGTH = 500;
+const EVIL_REGEX_PATTERNS = /(\.\*){2,}|(\w\+){2,}|\(\[^[^\]]*\]\*\)\*|\(\.\+\)\+/;
+
+function safeRegExp(pattern: string): RegExp | null {
+  if (pattern.length > MAX_PATTERN_LENGTH) {
+    console.warn(`[Trusera Standalone] Exclude pattern too long, skipping`);
+    return null;
+  }
+  if (EVIL_REGEX_PATTERNS.test(pattern)) {
+    console.warn(`[Trusera Standalone] Potentially dangerous regex pattern, skipping`);
+    return null;
+  }
+  try {
+    return new RegExp(pattern);
+  } catch {
+    console.warn(`[Trusera Standalone] Invalid regex pattern, skipping`);
+    return null;
+  }
+}
+
 /**
  * Enforcement modes for policy violations.
  */
@@ -96,10 +116,10 @@ export class StandaloneInterceptor {
       debug: options.debug ?? false,
     };
 
-    // Compile exclude patterns
-    this.excludeRegexes = this.options.excludePatterns.map(
-      (pattern) => new RegExp(pattern)
-    );
+    // Compile exclude patterns (with ReDoS protection)
+    this.excludeRegexes = this.options.excludePatterns
+      .map((pattern) => safeRegExp(pattern))
+      .filter((r): r is RegExp => r !== null);
   }
 
   /**
