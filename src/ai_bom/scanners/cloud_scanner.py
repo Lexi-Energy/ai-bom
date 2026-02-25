@@ -482,8 +482,9 @@ class CloudScanner(BaseScanner):
                 return loader.construct_mapping(node)
             return None
 
-        # Create a custom YAML loader
-        loader = yaml.SafeLoader
+        # Create a subclass of SafeLoader to avoid mutating the global loader
+        class CloudFormationLoader(yaml.SafeLoader):
+            pass
 
         # Add constructors for common CloudFormation tags
         cf_tags = [
@@ -500,9 +501,9 @@ class CloudScanner(BaseScanner):
         ]
 
         for tag in cf_tags:
-            yaml.add_constructor(tag, cloudformation_constructor, Loader=loader)
+            CloudFormationLoader.add_constructor(tag, cloudformation_constructor)
 
-        result: dict[str, Any] = yaml.load(content, Loader=loader)  # noqa: S506 — loader IS SafeLoader
+        result: dict[str, Any] = yaml.load(content, Loader=CloudFormationLoader)  # noqa: S506
         return result
 
     def _is_cloudformation_file(self, file_path: Path) -> bool:
