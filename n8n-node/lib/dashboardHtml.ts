@@ -23,7 +23,7 @@ export function generateDashboardHtml(
   let decryptionScript = '';
   let passwordFormHtml = '';
 
-  const remediationScript = `<script>var REMEDIATION_MAP = ${JSON.stringify(REMEDIATION_MAP)};</script>`;
+  const remediationScript = `<script>var REMEDIATION_MAP = ${JSON.stringify(REMEDIATION_MAP).replace(/<\//g, '<\\/')};</script>`;
 
   if (password) {
     const salt = randomBytes(16);
@@ -79,14 +79,18 @@ async function handleLogin(e) {
     return;
   }
   SCAN_DATA = data;
-  try { sessionStorage.setItem('trusera-pwd', pwd); } catch(e) {}
+  try {
+    var pwdHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pwd));
+    var token = Array.from(new Uint8Array(pwdHash)).map(function(b){return b.toString(16).padStart(2,'0')}).join('');
+    sessionStorage.setItem('trusera-token', token + ':' + btoa(pwd));
+  } catch(e) {}
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('dashboard').classList.remove('hidden');
   renderDashboard();
 }
 
 async function trySessionRestore() {
-  var saved; try { saved = sessionStorage.getItem('trusera-pwd'); } catch(e) {}
+  var saved; try { var raw = sessionStorage.getItem('trusera-token'); saved = raw ? atob(raw.split(':')[1]) : null; } catch(e) {}
   if (saved) {
     var data = await decryptData(saved);
     if (data) {
@@ -119,7 +123,7 @@ async function trySessionRestore() {
   </div>
 </div>`;
   } else {
-    dataScript = `<script>var SCAN_DATA = ${jsonPayload};</script>`;
+    dataScript = `<script>var SCAN_DATA = ${jsonPayload.replace(/<\//g, '<\\/')};</script>`;
   }
 
   const dashboardHiddenClass = password ? ' hidden' : '';
@@ -130,7 +134,7 @@ async function trySessionRestore() {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trusera AI-BOM Dashboard</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" integrity="sha384-bJFOSBzPRbfMrlRk8kGnSMA3t0DqP01GYIKZO9YFi5ZjdDbeqYeAzn9iUcbnrsnk" crossorigin="anonymous"><\/script>
 <style>
   :root {
     --bg: #0d1117;
@@ -703,17 +707,17 @@ function showComponentModal(idx) {
     modalRow('Provider', c.provider || '-') +
     modalRow('Model', c.modelName || '-') +
     modalRow('Version', c.version || '-') +
-    modalRow('Severity', severityBadge(sev)) +
+    modalRow('Severity', severityBadge(sev), true) +
     modalRow('Risk Score', String(score)) +
     modalRow('Workflow', fp) +
-    modalRow('OWASP Categories', owaspCats) +
+    modalRow('OWASP Categories', owaspCats, true) +
     modalRow('Source', c.source || '-') +
     flagsHtml +
     '</div></div>';
 }
 
-function modalRow(label, value) {
-  return '<div class="modal-row"><div class="modal-label">' + esc(label) + '</div><div class="modal-value">' + (typeof value === 'string' && value.indexOf('<') !== -1 ? value : esc(value)) + '</div></div>';
+function modalRow(label, value, isHTML) {
+  return '<div class="modal-row"><div class="modal-label">' + esc(label) + '</div><div class="modal-value">' + (isHTML ? value : esc(value)) + '</div></div>';
 }
 
 function closeModal(event) {
