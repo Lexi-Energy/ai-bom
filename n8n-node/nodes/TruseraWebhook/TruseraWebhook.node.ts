@@ -8,6 +8,19 @@ import type {
 import { scanWorkflows } from '../../lib/scanner';
 import { generateDashboardHtml } from '../../lib/dashboardHtml';
 
+/**
+ * Escape HTML special characters to prevent XSS in error messages.
+ * OWASP: A03:2021 - Injection (Cross-Site Scripting)
+ */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export class TruseraWebhook implements INodeType {
   description: INodeTypeDescription = {
     displayName: 'Trusera Webhook',
@@ -95,15 +108,22 @@ export class TruseraWebhook implements INodeType {
       // Generate HTML dashboard
       const html = generateDashboardHtml(scanResult, password || undefined);
 
-      // Serve HTML directly
+      // Serve HTML directly with security headers
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('X-Frame-Options', 'DENY');
+      res.setHeader('Referrer-Policy', 'no-referrer');
       res.status(200).end(html);
     } catch (err) {
+      // Escape error message to prevent reflected XSS via crafted error strings
+      // OWASP: A03:2021 - Injection (Cross-Site Scripting)
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('X-Frame-Options', 'DENY');
       res.status(500).end(
         `<!DOCTYPE html><html><body style="font-family:sans-serif;padding:40px">` +
         `<h1>Trusera Dashboard Error</h1>` +
-        `<pre style="color:red">${(err as Error).message}</pre>` +
+        `<pre style="color:red">${escapeHtml((err as Error).message)}</pre>` +
         `</body></html>`,
       );
     }
