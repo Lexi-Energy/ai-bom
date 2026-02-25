@@ -181,7 +181,7 @@ func NewClient(apiKey string, opts ...Option) *Client {
 	}
 
 	if err := validateBaseURL(c.baseURL); err != nil {
-		log.Printf("[trusera] base URL validation: %v", err)
+		log.Fatalf("[trusera] base URL validation failed (refusing to start): %v", err)
 	}
 
 	if c.apiKey == "" {
@@ -229,14 +229,14 @@ func (c *Client) backgroundFlusher() {
 // Track queues an event for sending
 func (c *Client) Track(event Event) {
 	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	c.events = append(c.events, event)
+	shouldFlush := len(c.events) >= c.flushSize
+	c.mu.Unlock()
 
-	if len(c.events) >= c.flushSize {
-		go func() {
-			_ = c.Flush()
-		}()
+	if shouldFlush {
+		// Flush synchronously to avoid unbounded goroutine accumulation.
+		// The background flusher handles periodic async flushes.
+		_ = c.Flush()
 	}
 }
 
@@ -276,6 +276,8 @@ func (c *Client) Flush() error {
 		return fmt.Errorf("failed to send events: %w", err)
 	}
 	defer resp.Body.Close()
+	// Drain body to allow connection reuse
+	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 1<<20))
 
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("API returned status %d", resp.StatusCode)
@@ -315,6 +317,7 @@ func (c *Client) RegisterAgent(name, framework string) (string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 1<<20))
 		return "", fmt.Errorf("API returned status %d", resp.StatusCode)
 	}
 
@@ -405,6 +408,7 @@ func (c *Client) registerWithFleet() {
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 1<<20))
 		log.Printf("[trusera] fleet register returned status %d (continuing without)", resp.StatusCode)
 		return
 	}
@@ -474,6 +478,8 @@ func (c *Client) sendHeartbeat() {
 		return
 	}
 	defer resp.Body.Close()
+	// Drain body to allow connection reuse
+	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 1<<20))
 
 	if resp.StatusCode >= 400 {
 		log.Printf("[trusera] fleet heartbeat returned status %d", resp.StatusCode)

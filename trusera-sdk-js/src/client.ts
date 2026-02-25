@@ -108,7 +108,8 @@ export class TruseraClient {
     this.agentType = options.agentType ?? (typeof process !== "undefined" ? process.env?.TRUSERA_AGENT_TYPE : undefined) ?? "";
     this.environment = options.environment ?? (typeof process !== "undefined" ? process.env?.TRUSERA_ENVIRONMENT : undefined) ?? "";
     const envHb = typeof process !== "undefined" ? process.env?.TRUSERA_HEARTBEAT_INTERVAL : undefined;
-    this.heartbeatInterval = envHb ? parseInt(envHb, 10) * 1000 : (options.heartbeatInterval ?? 60000);
+    const parsedHb = envHb ? parseInt(envHb, 10) * 1000 : NaN;
+    this.heartbeatInterval = Number.isFinite(parsedHb) && parsedHb > 0 ? parsedHb : (options.heartbeatInterval ?? 60000);
 
     if (!this.apiKey.startsWith("tsk_")) {
       throw new Error("Invalid API key format. Must start with 'tsk_'");
@@ -188,9 +189,13 @@ export class TruseraClient {
     this.eventQueue.push(enrichedEvent);
 
     // Drop oldest events if queue exceeds max size
+    let dropped = 0;
     while (this.eventQueue.length > this.maxQueueSize) {
       this.eventQueue.shift();
-      this.log("Event queue overflow, dropping oldest event");
+      dropped++;
+    }
+    if (dropped > 0) {
+      this.log("Event queue overflow, dropped oldest events", { count: dropped });
     }
 
     this.log("Event tracked", { type: event.type, name: event.name, queueSize: this.eventQueue.length });

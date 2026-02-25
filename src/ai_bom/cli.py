@@ -148,23 +148,26 @@ def _clone_repo(url: str) -> Path:
         )
         raise typer.Exit(EXIT_ERROR) from None
 
-    # Validate URL scheme to prevent SSRF
+    # Validate URL scheme — positive allowlist to prevent SSRF
     import urllib.parse
 
     parsed = urllib.parse.urlparse(url)
-    if parsed.scheme == "file":
-        console.print("[red]file:// URLs are not allowed for security reasons[/red]")
+    allowed_schemes = ("http", "https", "ssh")
+    is_git_ssh = url.startswith("git@")  # git@host:repo has empty scheme
+
+    if not is_git_ssh and parsed.scheme not in allowed_schemes:
+        console.print("[red]Unsupported URL scheme. Use https:// or git@[/red]")
         raise typer.Exit(EXIT_ERROR) from None
-    if parsed.scheme == "http" and parsed.hostname not in ("localhost", "127.0.0.1"):
+    if parsed.scheme == "http" and parsed.hostname not in (
+        "localhost",
+        "127.0.0.1",
+        "0.0.0.0",  # noqa: S104 — comparing hostname, not binding
+        "::1",
+    ):
         console.print(
             "[yellow]Warning: Using insecure http:// URL. Consider using https://[/yellow]"
         )
         logger.warning("Non-HTTPS git URL used: %s", parsed.scheme)
-    if parsed.scheme not in ("http", "https", "ssh", "") and not url.startswith("git@"):
-        # Empty scheme handles git@host:repo style URLs
-        msg = f"Unsupported URL scheme: {parsed.scheme}. Use https:// or git@"
-        console.print(f"[red]{msg}[/red]")
-        raise typer.Exit(EXIT_ERROR) from None
 
     try:
         tmp = Path(tempfile.mkdtemp(prefix="ai-bom-"))

@@ -80,9 +80,7 @@ async function handleLogin(e) {
   }
   SCAN_DATA = data;
   try {
-    var pwdHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pwd));
-    var token = Array.from(new Uint8Array(pwdHash)).map(function(b){return b.toString(16).padStart(2,'0')}).join('');
-    sessionStorage.setItem('trusera-token', token + ':' + btoa(pwd));
+    sessionStorage.setItem('trusera-data', JSON.stringify(data));
   } catch(e) {}
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('dashboard').classList.remove('hidden');
@@ -90,17 +88,16 @@ async function handleLogin(e) {
 }
 
 async function trySessionRestore() {
-  var saved; try { var raw = sessionStorage.getItem('trusera-token'); saved = raw ? atob(raw.split(':')[1]) : null; } catch(e) {}
-  if (saved) {
-    var data = await decryptData(saved);
-    if (data) {
-      SCAN_DATA = data;
+  try {
+    var raw = sessionStorage.getItem('trusera-data');
+    if (raw) {
+      SCAN_DATA = JSON.parse(raw);
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('dashboard').classList.remove('hidden');
       renderDashboard();
       return;
     }
-  }
+  } catch(e) {}
   document.getElementById('login-screen').classList.remove('hidden');
 }
 `;

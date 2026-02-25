@@ -80,7 +80,7 @@ export class TruseraWebhook implements INodeType {
       do {
         const url =
           `${baseUrl}/api/v1/workflows?limit=100` +
-          (cursor ? `&cursor=${cursor}` : '');
+          (cursor ? `&cursor=${encodeURIComponent(cursor)}` : '');
         const resp = await fetch(url, {
           headers: {
             'X-N8N-API-KEY': apiKey,
