@@ -18,7 +18,7 @@ _DASHBOARD_HTML = """\
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI-BOM Dashboard</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" integrity="sha384-bJFOSBzPRbfMrlRk8kGnSMA3t0DqP01GYIKZO9YFi5ZjdDbeqYeAzn9iUcbnrsnk" crossorigin="anonymous"></script>
 <style>
   :root {
     --bg: #0d1117;
@@ -715,19 +715,19 @@ function showComponentModal(idx) {
     modalRow('Type', (c.type || '').replace(/_/g, ' ')) +
     modalRow('Provider', c.provider || '-') +
     modalRow('Version', c.version || '-') +
-    modalRow('Severity', severityBadge(sev)) +
+    modalRow('Severity', severityBadge(sev), true) +
     modalRow('Risk Score', score) +
     modalRow('File Path', filePath || '-') +
     (line ? modalRow('Line', line) : '') +
     modalRow('Source', c.source || '-') +
     modalRow('Flags', flags) +
     modalRow('Risk Factors', riskFactors) +
-    modalRow('Metadata', metadata) +
+    modalRow('Metadata', metadata, true) +
     '</div></div>';
 }
 
-function modalRow(label, value) {
-  return '<div class="modal-row"><div class="modal-label">' + esc(label) + '</div><div class="modal-value">' + (typeof value === 'string' && value.includes('<') ? value : esc(value)) + '</div></div>';
+function modalRow(label, value, isHTML) {
+  return '<div class="modal-row"><div class="modal-label">' + esc(label) + '</div><div class="modal-value">' + (isHTML ? value : esc(value)) + '</div></div>';
 }
 
 function closeModal(event) {
