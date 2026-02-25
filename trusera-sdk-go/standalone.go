@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -35,9 +36,9 @@ type StandaloneInterceptor struct {
 type StandaloneOption func(*StandaloneInterceptor)
 
 // WithPolicyFile sets the path to the Cedar policy file
-func WithPolicyFile(path string) StandaloneOption {
+func WithPolicyFile(p string) StandaloneOption {
 	return func(si *StandaloneInterceptor) {
-		si.policyFile = path
+		si.policyFile = filepath.Clean(p)
 	}
 }
 
@@ -49,9 +50,9 @@ func WithEnforcement(mode EnforcementAction) StandaloneOption {
 }
 
 // WithLogFile sets the path to the JSONL event log file
-func WithLogFile(path string) StandaloneOption {
+func WithLogFile(p string) StandaloneOption {
 	return func(si *StandaloneInterceptor) {
-		si.logFile = path
+		si.logFile = filepath.Clean(p)
 	}
 }
 
@@ -90,7 +91,7 @@ func NewStandaloneInterceptor(opts ...StandaloneOption) (*StandaloneInterceptor,
 
 	// Open log file if specified
 	if si.logFile != "" {
-		f, err := os.OpenFile(si.logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		f, err := os.OpenFile(si.logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 		if err != nil {
 			return nil, fmt.Errorf("failed to open log file: %w", err)
 		}
