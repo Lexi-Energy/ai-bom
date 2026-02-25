@@ -31,7 +31,11 @@ type Event struct {
 // generateID creates a random hex ID
 func generateID() string {
 	b := make([]byte, 16)
-	rand.Read(b)
+	// rand.Read from crypto/rand always returns len(b) and nil error on Go 1.21+,
+	// but we check for correctness on older versions.
+	if _, err := rand.Read(b); err != nil {
+		panic("crypto/rand failed: " + err.Error())
+	}
 	return hex.EncodeToString(b)
 }
 
