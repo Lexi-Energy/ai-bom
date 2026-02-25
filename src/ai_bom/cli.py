@@ -148,6 +148,22 @@ def _clone_repo(url: str) -> Path:
         )
         raise typer.Exit(EXIT_ERROR) from None
 
+    # Validate URL scheme to prevent SSRF
+    import urllib.parse
+
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme == "file":
+        console.print("[red]file:// URLs are not allowed for security reasons[/red]")
+        raise typer.Exit(EXIT_ERROR) from None
+    if parsed.scheme == "http" and parsed.hostname not in ("localhost", "127.0.0.1"):
+        console.print("[yellow]Warning: Using insecure http:// URL. Consider using https://[/yellow]")
+        logger.warning("Non-HTTPS git URL used: %s", parsed.scheme)
+    if parsed.scheme not in ("http", "https", "ssh", ""):
+        # Empty scheme handles git@host:repo style URLs
+        if not url.startswith("git@"):
+            console.print(f"[red]Unsupported URL scheme: {parsed.scheme}. Use https:// or git@[/red]")
+            raise typer.Exit(EXIT_ERROR) from None
+
     try:
         tmp = Path(tempfile.mkdtemp(prefix="ai-bom-"))
         console.print("[cyan]Cloning repository to temporary directory...[/cyan]")
@@ -412,6 +428,8 @@ def scan(
         console.print("[cyan]Deep scanning (AST mode) enabled.[/cyan]")
 
     # Resolve target path
+    scan_path = Path(".")
+    is_temp = False
     try:
         scan_path, is_temp = _resolve_target(target, n8n_local, n8n_url)
     except typer.Exit:
@@ -981,7 +999,7 @@ def dashboard(
 
 @app.command()
 def serve(
-    host: str = typer.Option("0.0.0.0", help="Host to bind"),  # noqa: S104
+    host: str = typer.Option("127.0.0.1", help="Host to bind"),
     port: int = typer.Option(8080, help="Port to bind"),
 ) -> None:
     """Start the AI-BOM REST API server."""
