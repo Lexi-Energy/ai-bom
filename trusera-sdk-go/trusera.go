@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"runtime"
 	"sync"
@@ -124,6 +126,31 @@ func envOrDefault(key, fallback string) string {
 	return fallback
 }
 
+// validateBaseURL ensures the base URL uses a secure scheme.
+// Allows http:// only for localhost development.
+func validateBaseURL(rawURL string) error {
+	if rawURL == "" {
+		return nil
+	}
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("invalid base URL: %w", err)
+	}
+	switch u.Scheme {
+	case "https":
+		return nil
+	case "http":
+		host := u.Hostname()
+		if host == "localhost" || host == "127.0.0.1" || host == "::1" {
+			return nil
+		}
+		log.Printf("[trusera] WARNING: Using insecure http:// base URL for non-localhost host: %s", host)
+		return nil
+	default:
+		return fmt.Errorf("unsupported base URL scheme %q, use https://", u.Scheme)
+	}
+}
+
 // NewClient creates a Trusera monitoring client.
 // If apiKey is empty, falls back to the TRUSERA_API_KEY environment variable.
 // Base URL defaults to TRUSERA_API_URL env var, then https://api.trusera.io.
@@ -151,6 +178,14 @@ func NewClient(apiKey string, opts ...Option) *Client {
 
 	for _, opt := range opts {
 		opt(c)
+	}
+
+	if err := validateBaseURL(c.baseURL); err != nil {
+		log.Printf("[trusera] base URL validation: %v", err)
+	}
+
+	if c.apiKey == "" {
+		log.Printf("[trusera] WARNING: API key is empty, API calls will fail")
 	}
 
 	// Env var override for auto-register
@@ -287,7 +322,7 @@ func (c *Client) RegisterAgent(name, framework string) (string, error) {
 		AgentID string `json:"agent_id"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&result); err != nil {
 		return "", fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -303,7 +338,7 @@ func (c *Client) RegisterAgent(name, framework string) (string, error) {
 func (c *Client) getProcessInfo() map[string]interface{} {
 	return map[string]interface{}{
 		"pid":        os.Getpid(),
-		"args":       os.Args,
+		"args":       os.Args[:1],
 		"go_version": runtime.Version(),
 		"os":         runtime.GOOS,
 		"arch":       runtime.GOARCH,
@@ -379,14 +414,16 @@ func (c *Client) registerWithFleet() {
 			ID string `json:"id"`
 		} `json:"data"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&result); err != nil {
 		log.Printf("[trusera] fleet register decode error: %v", err)
 		return
 	}
 
 	if result.Data.ID != "" {
+		c.mu.Lock()
 		c.fleetAgentID = result.Data.ID
-		log.Printf("[trusera] fleet auto-register succeeded (id=%s)", c.fleetAgentID)
+		c.mu.Unlock()
+		log.Printf("[trusera] fleet auto-register succeeded (id=%s)", result.Data.ID)
 	}
 }
 
@@ -406,7 +443,10 @@ func (c *Client) heartbeatLoop() {
 }
 
 func (c *Client) sendHeartbeat() {
-	if c.fleetAgentID == "" {
+	c.mu.Lock()
+	fleetID := c.fleetAgentID
+	c.mu.Unlock()
+	if fleetID == "" {
 		return
 	}
 
@@ -420,7 +460,7 @@ func (c *Client) sendHeartbeat() {
 		return
 	}
 
-	url := fmt.Sprintf("%s/api/v1/fleet/%s/heartbeat", c.baseURL, c.fleetAgentID)
+	url := fmt.Sprintf("%s/api/v1/fleet/%s/heartbeat", c.baseURL, fleetID)
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		return
