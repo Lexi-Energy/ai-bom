@@ -64,18 +64,19 @@ func (t *interceptingTransport) RoundTrip(req *http.Request) (*http.Response, er
 	// Check if URL matches block patterns (for enforcement)
 	blocked := t.isBlocked(req.URL.String())
 
-	// Read and restore request body for logging
+	// Read and restore request body for logging (bounded read to prevent OOM)
 	var bodySnippet string
 	if req.Body != nil {
-		bodyBytes, err := io.ReadAll(req.Body)
+		limitedReader := io.LimitReader(req.Body, int64(maxBodySnippet)+1)
+		snippetBytes, err := io.ReadAll(limitedReader)
 		if err == nil {
-			req.Body.Close()
-			req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+			// Reconstruct body: snippet bytes + remaining unread body
+			req.Body = io.NopCloser(io.MultiReader(bytes.NewReader(snippetBytes), req.Body))
 
-			if len(bodyBytes) > maxBodySnippet {
-				bodySnippet = string(bodyBytes[:maxBodySnippet]) + "..."
+			if len(snippetBytes) > maxBodySnippet {
+				bodySnippet = string(snippetBytes[:maxBodySnippet]) + "..."
 			} else {
-				bodySnippet = string(bodyBytes)
+				bodySnippet = string(snippetBytes)
 			}
 		}
 	}
