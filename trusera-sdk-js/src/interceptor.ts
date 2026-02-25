@@ -18,6 +18,8 @@ export interface InterceptorOptions {
   excludePatterns?: string[];
   /** Enable debug logging */
   debug?: boolean;
+  /** When true and enforcement is "block", deny requests on policy evaluation errors (default: false) */
+  failClosed?: boolean;
 }
 
 /**
@@ -58,6 +60,46 @@ function tryRequire(moduleName: string): any { // eslint-disable-line @typescrip
   }
 }
 
+const SENSITIVE_HEADERS = new Set([
+  "authorization",
+  "cookie",
+  "set-cookie",
+  "x-api-key",
+  "x-n8n-api-key",
+  "proxy-authorization",
+]);
+
+function redactHeaders(headers: Record<string, string>): Record<string, string> {
+  const redacted: Record<string, string> = {};
+  for (const [key, value] of Object.entries(headers)) {
+    redacted[key] = SENSITIVE_HEADERS.has(key.toLowerCase()) ? "[REDACTED]" : value;
+  }
+  return redacted;
+}
+
+/** Maximum allowed regex pattern length */
+const MAX_PATTERN_LENGTH = 500;
+
+/** Patterns known to cause catastrophic backtracking */
+const EVIL_REGEX_PATTERNS = /(\.\*){2,}|(\w\+){2,}|\(\[^[^\]]*\]\*\)\*|\(\.\+\)\+/;
+
+function safeRegExp(pattern: string): RegExp | null {
+  if (pattern.length > MAX_PATTERN_LENGTH) {
+    console.warn(`[Trusera] Exclude pattern too long (${pattern.length} > ${MAX_PATTERN_LENGTH}), skipping`);
+    return null;
+  }
+  if (EVIL_REGEX_PATTERNS.test(pattern)) {
+    console.warn(`[Trusera] Potentially dangerous regex pattern detected, skipping: ${pattern.slice(0, 50)}`);
+    return null;
+  }
+  try {
+    return new RegExp(pattern);
+  } catch (e) {
+    console.warn(`[Trusera] Invalid regex pattern, skipping: ${pattern.slice(0, 50)}`);
+    return null;
+  }
+}
+
 /**
  * HTTP interceptor for AI agent outbound traffic.
  * Monkey-patches globalThis.fetch, axios, and undici to intercept all HTTP calls,
@@ -87,6 +129,7 @@ export class TruseraInterceptor {
     policyUrl: "",
     excludePatterns: [],
     debug: false,
+    failClosed: false,
   };
   private excludeRegexes: RegExp[] = [];
   private isInstalled = false;
@@ -125,10 +168,13 @@ export class TruseraInterceptor {
       policyUrl: options.policyUrl ?? "",
       excludePatterns: options.excludePatterns ?? [],
       debug: options.debug ?? false,
+      failClosed: options.failClosed ?? false,
     };
 
-    // Compile exclude patterns to regexes
-    this.excludeRegexes = this.options.excludePatterns.map((pattern) => new RegExp(pattern));
+    // Compile exclude patterns to regexes (with ReDoS protection)
+    this.excludeRegexes = this.options.excludePatterns
+      .map((pattern) => safeRegExp(pattern))
+      .filter((r): r is RegExp => r !== null);
 
     // Save original fetch and install interceptor
     if (originalFetch === null) {
@@ -194,7 +240,7 @@ export class TruseraInterceptor {
     const event = createEvent(
       EventType.API_CALL,
       eventName,
-      { method, url, headers },
+      { method, url, headers: redactHeaders(headers) },
       { interception_mode: this.options.enforcement }
     );
 
@@ -543,7 +589,7 @@ export class TruseraInterceptor {
           status: response.status,
           status_text: response.statusText,
           duration_ms: Date.now() - startTime,
-          response_headers: (() => { const h: Record<string, string> = {}; response.headers.forEach((v, k) => { h[k] = v; }); return h; })(),
+          response_headers: (() => { const h: Record<string, string> = {}; response.headers.forEach((v, k) => { h[k] = v; }); return redactHeaders(h); })(),
         }
       );
       self.client?.track(responseEvent);
@@ -599,7 +645,7 @@ export class TruseraInterceptor {
       }
     }
 
-    return { headers, body };
+    return { headers: redactHeaders(headers), body };
   }
 
   /**
@@ -634,12 +680,22 @@ export class TruseraInterceptor {
 
       if (!response.ok) {
         console.error(`[Trusera] Policy evaluation failed: ${response.status}`);
+        if (this.options.failClosed && this.options.enforcement === "block") {
+          console.warn("[Trusera] FAIL-CLOSED: Policy service returned error, denying request");
+          return { decision: "Deny", reasons: [`Policy service error: ${response.status}`] };
+        }
+        console.warn("[Trusera] FAIL-OPEN: Policy service returned error, allowing request");
         return { decision: "Allow" }; // Fail open
       }
 
       return (await response.json()) as PolicyEvaluationResponse;
     } catch (error) {
       console.error("[Trusera] Policy evaluation error:", error);
+      if (this.options.failClosed && this.options.enforcement === "block") {
+        console.warn("[Trusera] FAIL-CLOSED: Policy evaluation failed, denying request");
+        return { decision: "Deny", reasons: ["Policy evaluation failed (fail-closed mode)"] };
+      }
+      console.warn("[Trusera] FAIL-OPEN: Policy evaluation failed, allowing request");
       return { decision: "Allow" }; // Fail open on error
     }
   }
