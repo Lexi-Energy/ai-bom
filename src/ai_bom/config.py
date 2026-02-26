@@ -77,8 +77,6 @@ KNOWN_AI_PACKAGES: dict[str, tuple[str, str]] = {
     # Google Agent Development Kit
     "google.adk": ("Google", "agent"),
     "google-adk": ("Google", "agent"),
-    # DeepSeek
-    "deepseek": ("DeepSeek", "completion"),
     # AWS Bedrock
     "boto3": ("AWS", "completion"),  # Special: requires additional bedrock service check
     # LiteLLM
@@ -167,7 +165,7 @@ KNOWN_AI_ENDPOINTS: list[tuple[Pattern[str], str, str]] = [
 
 KNOWN_MODEL_PATTERNS: list[tuple[Pattern[str], str]] = [
     # OpenAI GPT models
-    (re.compile(r"gpt-4[o]?(-\w+)*"), "OpenAI"),
+    (re.compile(r"gpt-4o?(-\w+)*"), "OpenAI"),
     (re.compile(r"gpt-3\.5(-\w+)*"), "OpenAI"),
     (re.compile(r"text-davinci-\d+"), "OpenAI"),
     (re.compile(r"text-curie-\d+"), "OpenAI"),
@@ -202,7 +200,7 @@ KNOWN_MODEL_PATTERNS: list[tuple[Pattern[str], str]] = [
     (re.compile(r"phi-\d+(-\w+)*"), "Microsoft"),
     # OpenAI latest
     (re.compile(r"gpt-4\.5(-\w+)*"), "OpenAI"),
-    (re.compile(r"o[13](-\w+)*"), "OpenAI"),
+    (re.compile(r"\bo[13](-\w+)*\b"), "OpenAI"),
     # Anthropic Claude 4.x
     (re.compile(r"claude-4(-\w+)*"), "Anthropic"),
     (re.compile(r"claude-4\.5(-\w+)*"), "Anthropic"),
@@ -216,7 +214,7 @@ KNOWN_MODEL_PATTERNS: list[tuple[Pattern[str], str]] = [
     # DeepSeek
     (re.compile(r"deepseek-\w+(-\w+)*"), "DeepSeek"),
     # Alibaba Qwen
-    (re.compile(r"qwen(?:\d+(?:\.\d+)?)*(?:-\w+)*"), "Alibaba"),
+    (re.compile(r"qwen[\d.]*(?:-\w+)*"), "Alibaba"),
     # xAI Grok
     (re.compile(r"grok-(?:\d+(?:\.\d+)?|\w+)(?:-\w+)*"), "xAI"),
 ]

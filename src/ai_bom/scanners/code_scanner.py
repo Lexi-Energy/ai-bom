@@ -69,10 +69,6 @@ class CodeScanner(BaseScanner):
         """
         components: list[AIComponent] = []
 
-        # Track which files/SDKs we've already created components for
-        # to avoid duplicates: key = (sdk_name, file_path)
-        seen_components: set[tuple[str, str]] = set()
-
         # Handle single file scanning
         scan_dir = path if path.is_dir() else path.parent
 
@@ -111,9 +107,9 @@ class CodeScanner(BaseScanner):
         # Phase B: Source code scan
         if path.is_file() and path.suffix in SCANNABLE_EXTENSIONS["code"]:
             # Single file mode: scan just this file
-            source_components = self._scan_single_source_file(path, declared_deps, seen_components)
+            source_components = self._scan_single_source_file(path, declared_deps)
         else:
-            source_components = self._scan_source_files(scan_dir, declared_deps, seen_components)
+            source_components = self._scan_source_files(scan_dir, declared_deps)
         components.extend(source_components)
 
         return components
@@ -204,7 +200,6 @@ class CodeScanner(BaseScanner):
         self,
         path: Path,
         declared_deps: set[str],
-        seen_components: set[tuple[str, str]],
     ) -> list[AIComponent]:
         """Scan a single source file for AI SDK usage."""
         components: list[AIComponent] = []
@@ -410,14 +405,12 @@ class CodeScanner(BaseScanner):
         self,
         path: Path,
         declared_deps: set[str],
-        seen_components: set[tuple[str, str]],
     ) -> list[AIComponent]:
         """Scan source files for AI SDK usage.
 
         Args:
             path: Root path to scan
             declared_deps: Set of declared dependencies from Phase A
-            seen_components: Set of (sdk_name, file_path) tuples to avoid duplicates
 
         Returns:
             List of detected AI components

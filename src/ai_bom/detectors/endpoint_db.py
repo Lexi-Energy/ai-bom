@@ -7,8 +7,6 @@ API keys in source code or configuration files.
 
 from __future__ import annotations
 
-import re
-
 from ai_bom.config import API_KEY_PATTERNS, KNOWN_AI_ENDPOINTS
 
 
@@ -35,8 +33,9 @@ def match_endpoint(url: str) -> tuple[str, str] | None:
         >>> match_endpoint("https://example.com/api")
         None
     """
+    url_lower = url.lower()
     for pattern, provider, usage_type in KNOWN_AI_ENDPOINTS:
-        if pattern.search(url, re.IGNORECASE):
+        if pattern.search(url_lower):
             return (provider, usage_type)
     return None
 
@@ -66,11 +65,26 @@ def detect_api_key(text: str) -> list[tuple[str, str, str]]:
         [("sk-ant-t...st123", "Anthropic", "sk-ant-[a-zA-Z0-9_-]{32,}")]
     """
     results: list[tuple[str, str, str]] = []
+    # Track matched byte ranges to avoid double-attribution
+    # (e.g., DeepSeek sk- key also matching the generic OpenAI sk- pattern)
+    matched_spans: list[tuple[int, int]] = []
 
     for pattern, provider in API_KEY_PATTERNS:
         for match in pattern.finditer(text):
             # Use the first capture group if present, otherwise the full match
-            key = match.group(1) if match.lastindex else match.group(0)
+            if match.lastindex:
+                key = match.group(1)
+                key_start = match.start(1)
+                key_end = match.end(1)
+            else:
+                key = match.group(0)
+                key_start = match.start(0)
+                key_end = match.end(0)
+
+            # Skip if this key's byte range overlaps with an already-matched span
+            if any(key_start < end and key_end > start for start, end in matched_spans):
+                continue
+            matched_spans.append((key_start, key_end))
 
             # Mask the key for security
             if len(key) <= 12:

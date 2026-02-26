@@ -93,6 +93,7 @@ class TestAPIKeyPatterns:
             ("deepseek_api_key = 'sk-abcdefghijklmnopqrstuvwxyz1234'", "DeepSeek"),
             ("sk-ant-abcdefghijklmnopqrstuvwxyz", "Anthropic"),
             ("hf_abcdefghijklmnopqrstuvwxyz", "HuggingFace"),
+            ("xai-abcdefghijklmnopqrstuvwxyz", "xAI"),
         ],
     )
     def test_key_patterns(self, key, provider):
@@ -100,6 +101,13 @@ class TestAPIKeyPatterns:
             if re.search(pattern, key) and pat_provider == provider:
                 return
         pytest.fail(f"No pattern matched {key} for {provider}")
+
+    def test_deepseek_key_no_double_attribution(self):
+        """DeepSeek API keys should not also be attributed to OpenAI."""
+        results = detect_api_key("deepseek_api_key = 'sk-abcdefghijklmnopqrstuvwxyz1234'")
+        providers = [r[1] for r in results]
+        assert "DeepSeek" in providers
+        assert providers.count("OpenAI") == 0, "DeepSeek key should not also match as OpenAI"
 
 
 class TestModelPatterns:
@@ -110,10 +118,60 @@ class TestModelPatterns:
             ("claude-3-opus", "Anthropic"),
             ("gemini-1.5-pro", "Google"),
             ("mistral-large", "Mistral"),
+            ("deepseek-coder", "DeepSeek"),
+            ("grok-2", "xAI"),
+            ("grok-beta", "xAI"),
+            ("qwen2.5-coder", "Alibaba"),
+            ("qwen-max", "Alibaba"),
         ],
     )
     def test_model_patterns(self, model, expected_provider):
         for pattern, provider in KNOWN_MODEL_PATTERNS:
-            if re.match(pattern, model) and provider == expected_provider:
+            if re.search(pattern, model) and provider == expected_provider:
                 return
         pytest.fail(f"No pattern matched {model} for {expected_provider}")
+
+
+class TestEndpointNewProviders:
+    def test_xai_endpoint(self):
+        result = match_endpoint("https://api.x.ai/v1/chat/completions")
+        assert result is not None
+        assert result[0] == "xAI"
+
+    def test_alibaba_endpoint(self):
+        result = match_endpoint("https://dashscope.aliyuncs.com/api/v1/services")
+        assert result is not None
+        assert result[0] == "Alibaba"
+
+    def test_xai_endpoint_uppercase(self):
+        """Ensure case-insensitive matching works for endpoints."""
+        result = match_endpoint("https://API.X.AI/v1/chat")
+        assert result is not None
+        assert result[0] == "xAI"
+
+
+class TestModelRegistryNewProviders:
+    def test_grok_2(self):
+        result = lookup_model("grok-2")
+        assert result is not None
+        assert result["provider"] == "xAI"
+
+    def test_grok_beta(self):
+        result = lookup_model("grok-beta")
+        assert result is not None
+        assert result["provider"] == "xAI"
+
+    def test_qwen_max(self):
+        result = lookup_model("qwen-max")
+        assert result is not None
+        assert result["provider"] == "Alibaba"
+
+    def test_qwen_versioned(self):
+        result = lookup_model("qwen2.5")
+        assert result is not None
+        assert result["provider"] == "Alibaba"
+
+    def test_bare_grok_no_match(self):
+        """Bare 'grok' without version/suffix should not match to avoid false positives."""
+        result = lookup_model("grok")
+        assert result is None

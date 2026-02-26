@@ -400,11 +400,15 @@ class TestLatestModelPatterns:
                 break
         assert matched, f"Model '{model_name}' did not match any pattern"
 
-    def test_deepseek_package(self):
-        assert "deepseek" in KNOWN_AI_PACKAGES
-        provider, usage = KNOWN_AI_PACKAGES["deepseek"]
-        assert provider == "DeepSeek"
-        assert usage == "completion"
+    def test_deepseek_model_pattern(self):
+        """DeepSeek detection is via model patterns and API keys, not a fake package name."""
+        from ai_bom.config import KNOWN_MODEL_PATTERNS
+
+        matched = any(
+            pattern.search("deepseek-coder") and provider == "DeepSeek"
+            for pattern, provider in KNOWN_MODEL_PATTERNS
+        )
+        assert matched, "DeepSeek model pattern should match 'deepseek-coder'"
 
 
 class TestDeprecatedModels:
