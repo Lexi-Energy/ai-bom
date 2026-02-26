@@ -1,6 +1,6 @@
 """AI-BOM: AI Bill of Materials Discovery Scanner by Trusera."""
 
-__version__ = "3.3.8"
+__version__ = "3.4.0"
 
 
 def get_version() -> str:
