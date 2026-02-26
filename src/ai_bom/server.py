@@ -10,8 +10,6 @@ Security (SEC-01):
 - Error messages never echo user-supplied paths back to the caller
 """
 
-from __future__ import annotations
-
 import os
 import time
 from pathlib import Path
